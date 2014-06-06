@@ -158,6 +158,7 @@ def create_the_queue_files(months, queue_type, queue_name, queue_priority):
 #PBS -N """ + queue_name + """
 #PBS -r n
 #
+#PBS -o $PBS_O_WORKDIR/queue_output/
 #
 # Set priority.
 #PBS -p """ + str(queue_priority) + """
@@ -217,14 +218,21 @@ def create_the_run_script(months):
          first_run = False
          command = "MONTH"+str(start_time) + "=$(qsub " + queue_file_location + ") \n"
          command2 = "echo $MONTH"+str(start_time) + " \n"
+         command3 = 'echo "#!/bin/bash" > exit_geos.sh \n'
+         command4 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
          run_script.write(command)
          run_script.write(command2)
+         run_script.write(command3)
+         run_script.write(command4)
+         
       else:
       
          command = "MONTH" + str(start_time) + "=$(qsub -W depend=afterok:$MONTH" + str(old_start_time) + " " + queue_file_location + ") \n"
          command2 = "echo $MONTH"+str(start_time) + " \n"
+         command3 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
          run_script.write(command)
          run_script.write(command2)
+         run_script.write(command3)
    
       old_start_time = start_time
       start_time = month
