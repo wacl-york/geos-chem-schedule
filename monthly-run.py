@@ -152,16 +152,16 @@ def create_the_queue_files(months, queue_type, queue_name, queue_priority):
       queue_file.write(
 """#PBS -j oe
 #PBS -V
-#PBS -q """ + queue_type + """
+#PBS -q """ + str(queue_type) + """
 #     ncpus is number of hyperthreads - the number of physical core is half of that
 #
-#PBS -N """ + queue_name + """
+#PBS -N """ + queue_name + start_time + """
 #PBS -r n
 #
 #PBS -o $PBS_O_WORKDIR/queue_output/
 #
 # Set priority.
-#PBS -p """ + str(queue_priority) + """
+#PBS -p """ + queue_priority + """
 #
 set -x
 #
