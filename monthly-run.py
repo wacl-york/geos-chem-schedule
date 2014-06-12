@@ -8,18 +8,18 @@ import math
 import shutil
 # Inputs
 
-# Name for the run in the queue, 10 charicters
-queue_name = "GEOS"
-
-# Priority, 0 is normal, 1023 is highest, -1024 is lowest
-queue_priority = "0"
-queue_type = "core16"
-
-
 # Automaticaly submit the generated run script
 auto_submit = False
 
-def main():
+#Defaults
+queue_name     = "GEOS"
+queue_priority = "-1000"
+queue_type     = "core16"
+
+def main( queue_name, queue_priority, queue_type ):
+
+   queue_name, queue_priority, queue_type = get_arguments( queue_name, queue_priority, queue_type)
+
    start_date, end_date = get_start_and_end_dates()
 
    months = list_of_months_to_run( start_date, end_date )
@@ -34,6 +34,36 @@ def main():
       print "complete"
 
    return;
+
+def get_arguments(queue_name, queue_priority, queue_type):
+   clear_screen()
+
+   input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
+   if (len(input) != 0): queue_name = input
+   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
+
+   clear_screen()
+   input = str(raw_input('What queue priority do you want? (Between -1024 and 1023). DEFAULT = ' + queue_priority + ' :\n'))
+   if (len(input) != 0): queue_priority = input
+   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
+
+   clear_screen()
+   input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
+   if (len(input) != 0): queue_type = input
+   assert ((queue_type=='core16') or (queue_type=='core32') or (queue_type=='core64')), "Unrecognised queue type: " + str(queue_type)
+
+   clear_screen()
+   print "queue name       = " + queue_name
+   print "queue priority   = " + queue_priority
+   print "queue type       = " + queue_type
+
+   return queue_name, queue_priority, queue_type
+
+
+
+def clear_screen():
+   os.system('cls' if os.name == 'nt' else 'clear')
+   return
 
 def get_start_and_end_dates():
    input_geos = open( 'input.geos', 'r' )
@@ -244,4 +274,4 @@ def create_the_run_script(months):
 
 
 
-main()
+main( queue_name, queue_priority, queue_type )
