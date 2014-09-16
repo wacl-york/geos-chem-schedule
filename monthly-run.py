@@ -6,6 +6,7 @@ import os
 import sys
 import math
 import shutil
+import subprocess
 # Inputs
 
 # Automaticaly submit the generated run script
@@ -14,11 +15,12 @@ auto_submit = False
 #Defaults
 queue_name     = "GEOS"
 queue_priority = "-1000"
-queue_type     = "core16"
+queue_type     = "batch"
+run_script     = "no"
 
-def main( queue_name, queue_priority, queue_type ):
+def main( queue_name, queue_priority, queue_type, run_script ):
 
-   queue_name, queue_priority, queue_type = get_arguments( queue_name, queue_priority, queue_type)
+   queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script)
 
    start_date, end_date = get_start_and_end_dates()
 
@@ -30,14 +32,18 @@ def main( queue_name, queue_priority, queue_type ):
 
    create_the_run_script(months)
 
+   run_the_script(run_script)
+
    if auto_submit:
       print "complete"
 
    return;
 
-def get_arguments(queue_name, queue_priority, queue_type):
+def get_arguments(queue_name, queue_priority, queue_type, run_script):
    clear_screen()
 
+
+   
    input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
    if (len(input) != 0): queue_name = input
    assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
@@ -50,16 +56,28 @@ def get_arguments(queue_name, queue_priority, queue_type):
    clear_screen()
    input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
    if (len(input) != 0): queue_type = input
-   assert ((queue_type=='core16') or (queue_type=='core32') or (queue_type=='core64')), "Unrecognised queue type: " + str(queue_type)
+   assert ((queue_type=='core16') or (queue_type=='core32') or (queue_type=='core64') or (queue_type=='batch') or (queue_type=='run')), "Unrecognised queue type: " + str(queue_type)
+
+   # Run script check
+   clear_screen()
+   input = str(raw_input('Do you want to run the script now? DEFAULT = ' + run_script + ' :\n'))
+   if (len(input) != 0): run_script = input
+   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
+   
+
 
    clear_screen()
-   print "queue name       = " + queue_name
-   print "queue priority   = " + queue_priority
-   print "queue type       = " + queue_type
+   print "queue name        = " + queue_name
+   print "queue priority    = " + queue_priority
+   print "queue type        = " + queue_type
+   print "run on completion = " + run_script
 
-   return queue_name, queue_priority, queue_type
+   return queue_name, queue_priority, queue_type, run_script;
 
-
+def run_the_script(run_script):
+   if ((run_script=='yes') or (run_script=="y")):
+      subprocess.call(["bash", "run_geos.sh"])
+   return;
 
 def clear_screen():
    os.system('cls' if os.name == 'nt' else 'clear')
@@ -274,4 +292,4 @@ def create_the_run_script(months):
 
 
 
-main( queue_name, queue_priority, queue_type )
+main( queue_name, queue_priority, queue_type, run_script )
