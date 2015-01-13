@@ -232,9 +232,12 @@ ulimit -s 200000000
 #change to the directory that the command was issued from
 cd $PBS_O_WORKDIR
 rm -f input.geos
-cp input_files/""" + str(start_time) +""".input.geos input.geos
+ln -s input_files/""" + str(start_time) +""".input.geos input.geos
 /opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > geos_"""+ str(start_time) + """.log
 mv ctm.bpch """+str(start_time)+""".ctm.bpch
+job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
+echo $job_number
+echo qdel $job_number > exit_geos.sh
 """
    )
       queue_file.close()
