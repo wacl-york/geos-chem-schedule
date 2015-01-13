@@ -243,55 +243,67 @@ chmod 775 exit_geos.sh
    )
       queue_file.close()
       start_time = month
+   return;
 
 
 def create_the_run_script(months):
-   
-   run_script = open('run_geos.sh','w') 
-   run_script.write("#!/bin/bash \n")
-   run_script.write("cp input.geos input.geos.orig \n")   
-
-   first_month = True
-   first_run   = True
-   month_number = 0
-# modify the input files to have the correct start months
-   for month in months:
-      month_number = month_number + 1
-      end_time = month
-      if first_month:
-         first_month = False
-         start_time = month
-         continue
-   
-      dir = os.path.dirname("queue_files/")
-      queue_file_location = os.path.join(dir , (start_time + ".pbs"))
-
-      if first_run:
-         first_run = False
-         command = "MONTH"+str(start_time) + "=$(qsub " + queue_file_location + ") \n"
-         command2 = "echo $MONTH"+str(start_time) + " \n"
-         command3 = 'echo "#!/bin/bash" > exit_geos.sh \n'
-         command4 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
-         run_script.write(command)
-         run_script.write(command2)
-         run_script.write(command3)
-         run_script.write(command4)
-         
-      else:
-      
-         command = "MONTH" + str(start_time) + "=$(qsub -W depend=afterok:$MONTH" + str(old_start_time) + " " + queue_file_location + ") \n"
-         command2 = "echo $MONTH"+str(start_time) + " \n"
-         command3 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
-         run_script.write(command)
-         run_script.write(command2)
-         run_script.write(command3)
-   
-      old_start_time = start_time
-      start_time = month
-
-
+   run_script = open('run_geos.sh','w')
+   run_script.write(
+   """#!/bin/bash
+qsub queue_files/"""+str(months[0])+""".pbs)
+""")
    run_script.close()
-   return;   
+   return;
+
+
+
+#def create_the_run_script(months):
+#   
+#   run_script = open('run_geos.sh','w') 
+#   run_script.write("#!/bin/bash \n")
+#   run_script.write("cp input.geos input.geos.orig \n")   
+#
+#   first_month = True
+#   first_run   = True
+#   month_number = 0
+## modify the input files to have the correct start months
+#   for month in months:
+#      month_number = month_number + 1
+#      end_time = month
+#      if first_month:
+#         first_month = False
+#         start_time = month
+#         continue
+#   
+#      dir = os.path.dirname("queue_files/")
+#      queue_file_location = os.path.join(dir , (start_time + ".pbs"))
+#
+#      if first_run:
+#         first_run = False
+#         command = "MONTH"+str(start_time) + "=$(qsub " + queue_file_location + ") \n"
+#         command2 = "echo $MONTH"+str(start_time) + " \n"
+#         command3 = 'echo "#!/bin/bash" > exit_geos.sh \n'
+#         command4 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
+#         run_script.write(command)
+#         run_script.write(command2)
+#         run_script.write(command3)
+#         run_script.write(command4)
+#         
+#      else:
+#      
+#         command = "MONTH" + str(start_time) + "=$(qsub -W depend=afterok:$MONTH" + str(old_start_time) + " " + queue_file_location + ") \n"
+#         command2 = "echo $MONTH"+str(start_time) + " \n"
+#         command3 = "echo qdel $MONTH"+str(start_time)+" >> exit_geos.sh \n"
+#         run_script.write(command)
+#         run_script.write(command2)
+#         run_script.write(command3)
+#   
+#      old_start_time = start_time
+#      start_time = month
+#
+#
+#   run_script.close()
+#   return;   
 
 
 
