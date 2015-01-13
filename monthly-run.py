@@ -16,7 +16,7 @@ auto_submit = False
 queue_name     = "GEOS"
 queue_priority = "-1000"
 queue_type     = "batch"
-run_script     = "no"
+run_script     = "yes"
 
 def main( queue_name, queue_priority, queue_type, run_script ):
 
