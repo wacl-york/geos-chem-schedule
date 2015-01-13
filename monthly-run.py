@@ -238,6 +238,7 @@ mv ctm.bpch """+str(start_time)+""".ctm.bpch
 job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
 echo $job_number
 echo qdel $job_number > exit_geos.sh
+chmod 775 exit_geos.sh
 """
    )
       queue_file.close()
