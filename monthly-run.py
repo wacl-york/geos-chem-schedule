@@ -250,7 +250,7 @@ def create_the_run_script(months):
    run_script = open('run_geos.sh','w')
    run_script.write(
    """#!/bin/bash
-qsub queue_files/"""+str(months[0])+""".pbs)
+qsub queue_files/"""+str(months[0])+""".pbs
 """)
    run_script.close()
    return;

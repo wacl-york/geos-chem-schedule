@@ -15,11 +15,16 @@ BASH run_geos.sh
 The BASH script generates a exit script on run, so you can remove all the jobs the run script created from the queue:
 BASH exit_geos.sh
 
+2015-01-14
+Option to send the run script to the queue streight away.
+Option to name the job (up to 9 charicters).
+Option to name the queue you wich to run on with error checking.
+Option to chose priority of the jobs.
+Now only sends one job to the queue at a time, reducing mess in qstat. Now calls then next month upon completion of the current month.
+
+
 TO-DO
 
-Add a flag to auto run the bash script.
-Add a argument to allow nameing the queue.
-Add arguments for other options.
 Allow splitting into 6 months or other multiples instead of just 1 month.
 
 
