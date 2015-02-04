@@ -21,12 +21,52 @@ queue_priority = "-1000"
 queue_type     = "batch"
 run_script     = "no"
 
-def main( queue_name, queue_priority, queue_type, run_script ):
+def main( queue_name, queue_priority, queue_type, run_script, debug ):
+
+   # Get the arguments from the comand line or UI.
+   queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script, debug)
+
+   # Check all the inputs are valid.
+   check_inputs(queue_name, queue_priority, queue_type, run_script)
+
+   # Check the start and end dates are compatible with the script.
+   start_date, end_date = get_start_and_end_dates()
+
+   # Calculate the list of months.
+   months = list_of_months_to_run( start_date, end_date )
+   
+   # Create the individual month input files.
+   create_the_input_files(months)
+  
+   # Create the queue files.
+   create_the_queue_files(months, queue_type, queue_name, queue_priority)
+
+   # Create the run script.
+   create_the_run_script(months)
+
+   # Send the script to the queue if wanted.
+   run_the_script(run_script)
+
+   return;
+
+def check_inputs(queue_name, queue_priority, queue_type, run_script):
+   
+   queue_types = ['core16', 'core32', 'core64', 'batch', 'run']
+
+   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
+
+   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
+
+   assert (queue_type in queue_types), "Unrecognised queue type: " + str(queue_type)
+
+   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
+
+
+def get_arguments(queue_name, queue_priority, queue_type, run_script, debug):
+
 
    # If there are no arguments then run the gui.
-   if len(sys.argv)==1:
-      queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script)
-   else:
+   if len(sys.argv)>1:
       for arg in sys.argv:
          if "monthly-run" in arg: continue
          if arg.startswith("--queue-name="):
@@ -45,70 +85,38 @@ def main( queue_name, queue_priority, queue_type, run_script ):
             print "e.g. to set the queue name to 'bob' write --queue-name=bob \n"
          else:
              print "Invalid argument "+ arg +"\nTry --help for more info.\n"
-         
+
+   else:
+   
+      clear_screen()
+   
+   
+      
+      input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
+      if (len(input) != 0): queue_name = input
+   
+      clear_screen()
+      input = str(raw_input('What queue priority do you want? (Between -1024 and 1023). DEFAULT = ' + queue_priority + ' :\n'))
+      if (len(input) != 0): queue_priority = input
+   
+      clear_screen()
+      input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
+      if (len(input) != 0): queue_type = input
+   
+      # Run script check
+      clear_screen()
+      input = str(raw_input('Do you want to run the script now? DEFAULT = ' + run_script + ' :\n'))
+      if (len(input) != 0): run_script = input
+      
+   
+   
+      clear_screen()
+
+
    if debug:
       print queue_name 
       print queue_priority 
       print run_script 
-
-   check_inputs(queue_name, queue_priority, queue_type, run_script)
-
-
-   start_date, end_date = get_start_and_end_dates()
-
-   months = list_of_months_to_run( start_date, end_date )
-   
-   create_the_input_files(months)
-  
-   create_the_queue_files(months, queue_type, queue_name, queue_priority)
-
-   create_the_run_script(months)
-
-   run_the_script(run_script)
-
-   return;
-
-def check_inputs(queue_name, queue_priority, queue_type, run_script):
-   
-   queue_types = ['core16', 'core32', 'core64', 'batch', 'run']
-
-   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
-
-   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
-
-   assert (queue_type in queue_types), "Unrecognised queue type: " + str(queue_type)
-
-   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
-
-
-def get_arguments(queue_name, queue_priority, queue_type, run_script):
-   clear_screen()
-
-
-   
-   input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
-   if (len(input) != 0): queue_name = input
-
-   clear_screen()
-   input = str(raw_input('What queue priority do you want? (Between -1024 and 1023). DEFAULT = ' + queue_priority + ' :\n'))
-   if (len(input) != 0): queue_priority = input
-
-   clear_screen()
-   input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
-   if (len(input) != 0): queue_type = input
-
-   # Run script check
-   clear_screen()
-   input = str(raw_input('Do you want to run the script now? DEFAULT = ' + run_script + ' :\n'))
-   if (len(input) != 0): run_script = input
-   
-
-
-   clear_screen()
-#   print "queue name        = " + queue_name
-#   print "queue priority    = " + queue_priority
-#   print "queue type        = " + queue_type
-#   print "run on completion = " + run_script
 
    return queue_name, queue_priority, queue_type, run_script;
 
@@ -346,4 +354,4 @@ qsub queue_files/"""+str(months[0])+""".pbs
 
 
 
-main( queue_name, queue_priority, queue_type, run_script )
+main( queue_name, queue_priority, queue_type, run_script, debug )
