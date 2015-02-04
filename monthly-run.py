@@ -10,17 +10,49 @@ import subprocess
 # Inputs
 
 # Automaticaly submit the generated run script
-auto_submit = False
+
+# If cmnd line arg then run silently, else ask
+
+debug=True
 
 #Defaults
 queue_name     = "GEOS"
 queue_priority = "-1000"
 queue_type     = "batch"
-run_script     = "yes"
+run_script     = "no"
 
 def main( queue_name, queue_priority, queue_type, run_script ):
 
-   queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script)
+   # If there are no arguments then run the gui.
+   if len(sys.argv)==1:
+      queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script)
+   else:
+      for arg in sys.argv:
+         if "monthly-run" in arg: continue
+         if arg.startswith("--queue-name="):
+            queue_name = arg[13:]
+         elif arg.startswith("--queue-priority="):
+            queue_priority = arg[17:]
+         elif arg.startswith("--submit="):
+            run_script = arg[9:]
+         elif arg.startswith("--help"):
+            print "monthly-run.py\n"
+            print "For UI run without arguments\n"
+            print "Arguments are:\n"
+            print "--queue-name=\n"
+            print "--queue-priority=\n"
+            print "--submit=\n"
+            print "e.g. to set the queue name to 'bob' write --queue-name=bob \n"
+         else:
+             print "Invalid argument "+ arg +"\nTry --help for more info.\n"
+         
+   if debug:
+      print queue_name 
+      print queue_priority 
+      print run_script 
+
+   check_inputs(queue_name, queue_priority, queue_type, run_script)
+
 
    start_date, end_date = get_start_and_end_dates()
 
@@ -34,10 +66,20 @@ def main( queue_name, queue_priority, queue_type, run_script ):
 
    run_the_script(run_script)
 
-   if auto_submit:
-      print "complete"
-
    return;
+
+def check_inputs(queue_name, queue_priority, queue_type, run_script):
+   
+   queue_types = ['core16', 'core32', 'core64', 'batch', 'run']
+
+   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
+
+   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
+
+   assert (queue_type in queue_types), "Unrecognised queue type: " + str(queue_type)
+
+   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
+
 
 def get_arguments(queue_name, queue_priority, queue_type, run_script):
    clear_screen()
@@ -46,31 +88,27 @@ def get_arguments(queue_name, queue_priority, queue_type, run_script):
    
    input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
    if (len(input) != 0): queue_name = input
-   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
 
    clear_screen()
    input = str(raw_input('What queue priority do you want? (Between -1024 and 1023). DEFAULT = ' + queue_priority + ' :\n'))
    if (len(input) != 0): queue_priority = input
-   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
 
    clear_screen()
    input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
    if (len(input) != 0): queue_type = input
-   assert ((queue_type=='core16') or (queue_type=='core32') or (queue_type=='core64') or (queue_type=='batch') or (queue_type=='run')), "Unrecognised queue type: " + str(queue_type)
 
    # Run script check
    clear_screen()
    input = str(raw_input('Do you want to run the script now? DEFAULT = ' + run_script + ' :\n'))
    if (len(input) != 0): run_script = input
-   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
    
 
 
    clear_screen()
-   print "queue name        = " + queue_name
-   print "queue priority    = " + queue_priority
-   print "queue type        = " + queue_type
-   print "run on completion = " + run_script
+#   print "queue name        = " + queue_name
+#   print "queue priority    = " + queue_priority
+#   print "queue type        = " + queue_type
+#   print "run on completion = " + run_script
 
    return queue_name, queue_priority, queue_type, run_script;
 
