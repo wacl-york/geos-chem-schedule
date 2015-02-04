@@ -55,7 +55,7 @@ def check_inputs(queue_name, queue_priority, queue_type, run_script):
 
    assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
 
-   assert ((-1024 <= int(queue_priority)) and (int(queue_priority) <= 1023)), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
+   assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
 
    assert (queue_type in queue_types), "Unrecognised queue type: " + str(queue_type)
 
