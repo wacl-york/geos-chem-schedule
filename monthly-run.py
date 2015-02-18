@@ -23,10 +23,10 @@ queue_name           = "batch"         # Name of the queue to submit too
 run_script_string    = "yes"           # Do you want to auto submit the job with this script?
 out_of_hours_string  = "no"            # Do you only want to run out of normal work hours? 
 
-def main( job_name, queue_priority, queue_type, run_script, out_of_hours, debug ):
+def main( job_name, queue_priority, queue_type, run_script_string, out_of_hours_string, debug ):
 
    # Get the arguments from the comand line or UI.
-   job, queue_priority, queue_type, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
+   job_name, queue_priority, queue_type, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
 
    # Check all the inputs are valid.
    run_script, out_of_hours = check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string)
@@ -97,9 +97,9 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
          elif arg.startswith("--queue-priority="):
             queue_priority = arg[17:]
          elif arg.startswith("--submit="):
-            run_script = arg[9:]
+            run_script_string = arg[9:]
          elif arg.startswith("--out-of-hours="):
-            out_of_hours = arg[15:] 
+            out_of_hours_string = arg[15:] 
          elif arg.startswith("--help"):
             print "monthly-run.py\n"
 
@@ -138,7 +138,7 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
       clear_screen()
       print 'Do you only want to run jobs out of normal work hours (Monday to Friday 9am - 5pm)?'
       input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
-      if (len(input) != 0: out_of_hours_string = input
+      if (len(input) != 0): out_of_hours_string = input
    
       # Run script check
       clear_screen()
@@ -150,11 +150,11 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
 
 
    if debug:
-      print job_name
-      print queue_name 
-      print queue_priority 
-      print run_script_string
-      print out_of_hours_string
+      print "job name         = " + str(job_name)
+      print "queue name       = " + str(queue_name)
+      print "queue priority   = " + str(queue_priority )
+      print "run script       = " + str(run_script_string)
+      print "out of hours     = " + str(out_of_hours_string)
 
    return job_name, queue_priority, queue_name, run_script_string, out_of_hours_string;
 
@@ -318,16 +318,17 @@ ulimit -s 200000000 """)
       if out_of_hours:
          # get the hour from the system (date +"%H")
          queue_file.write("""
+
 if  (( $(date +%u) < 5 ))  && (( 8 < $mytime )) && (($mytime < 18 )) ; then
    job_number=$(qsub -a 1800 queue_files/""" + str(start_time)+""".pbs)
    echo $job_number
    echo "tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:"
    date
+   
 fi
-
+exit
 
 """)
-         continue
 
 # Run geoschem
       queue_file.write("""
