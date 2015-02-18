@@ -16,18 +16,20 @@ import subprocess
 debug=True
 
 #Defaults
-queue_name     = "GEOS"
-queue_priority = "-1000"
-queue_type     = "batch"
-run_script     = "no"
 
-def main( queue_name, queue_priority, queue_type, run_script, debug ):
+job_name             = "GEOS"          # Name of the job that appears in qstat
+queue_priority       = "-1000"         # Priority of the job
+queue_name           = "batch"         # Name of the queue to submit too
+run_script_string    = "yes"           # Do you want to auto submit the job with this script?
+out_of_hours_string  = "no"            # Do you only want to run out of normal work hours? 
+
+def main( job_name, queue_priority, queue_type, run_script, out_of_hours, debug ):
 
    # Get the arguments from the comand line or UI.
-   queue_name, queue_priority, queue_type, run_script = get_arguments( queue_name, queue_priority, queue_type, run_script, debug)
+   job, queue_priority, queue_type, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
 
    # Check all the inputs are valid.
-   check_inputs(queue_name, queue_priority, queue_type, run_script)
+   run_script, out_of_hours = check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string)
 
    # Check the start and end dates are compatible with the script.
    start_date, end_date = get_start_and_end_dates()
@@ -39,7 +41,7 @@ def main( queue_name, queue_priority, queue_type, run_script, debug ):
    create_the_input_files(months)
   
    # Create the queue files.
-   create_the_queue_files(months, queue_type, queue_name, queue_priority)
+   create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours)
 
    # Create the run script.
    create_the_run_script(months)
@@ -49,79 +51,115 @@ def main( queue_name, queue_priority, queue_type, run_script, debug ):
 
    return;
 
-def check_inputs(queue_name, queue_priority, queue_type, run_script):
+def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string):
    
-   queue_types = ['core16', 'core32', 'core64', 'batch', 'run']
+   queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
+   yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
+   no          = ['no', 'NO', 'No', 'N', 'n'] 
 
-   assert (len(queue_name) <= 9), "Queue name is too long," + str(len(queue_name)) + " charicters long"
+   assert (len(job_name) <= 9), "Job name is too long," + str(len(job_name)) + " charicters long"
 
    assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
 
-   assert (queue_type in queue_types), "Unrecognised queue type: " + str(queue_type)
+   assert (queue_name in queue_names), "Unrecognised queue type: " + str(queue_name)
 
-   assert ((run_script=='yes') or (run_script=='y') or (run_script=='no') or (run_script=='n')), "Unrecognised queue type: " + str(queue_type)
+   
+   assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), "Unrecognised option for out of hours. Try one of: " + str(yes_no)
+
+   assert (run_script_string in yes) or (run_script_string in no), "Unrecognised option for run the script on completion. Try one of: " + str(yes) + str(no)
 
 
-def get_arguments(queue_name, queue_priority, queue_type, run_script, debug):
+   # Create the logicals
+   if (run_script_string in yes):
+      run_script = True
+   elif (run_script_string in no):
+      run_script = False
+
+   if (out_of_hours_string in yes):
+      out_of_hours = True
+   elif (out_of_hours_string in no):
+      out_of_hours = False
+
+
+   return run_script, out_of_hours;
+
+def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug):
 
 
    # If there are no arguments then run the gui.
    if len(sys.argv)>1:
       for arg in sys.argv:
          if "monthly-run" in arg: continue
-         if arg.startswith("--queue-name="):
+         if arg.startswith("--job-name="):
+            job_name = arg[11:]
+         elif arg.startswith("--queue-name="):
             queue_name = arg[13:]
          elif arg.startswith("--queue-priority="):
             queue_priority = arg[17:]
          elif arg.startswith("--submit="):
             run_script = arg[9:]
+         elif arg.startswith("--out-of-hours="):
+            out_of_hours = arg[15:] 
          elif arg.startswith("--help"):
             print "monthly-run.py\n"
+
             print "For UI run without arguments\n"
             print "Arguments are:\n"
+            print "--job-name=\n"
             print "--queue-name=\n"
             print "--queue-priority=\n"
             print "--submit=\n"
+            print "--out-of-hours=\n"
             print "e.g. to set the queue name to 'bob' write --queue-name=bob \n"
          else:
              print "Invalid argument "+ arg +"\nTry --help for more info.\n"
 
    else:
    
+      # Name the queue
       clear_screen()
+      print "What name do you want in the queue? (Up to 9 charicters)."
+      input = str(raw_input( 'DEFAULT = ' + job_name + ' :\n'))
+      if (len(input) != 0): job_name = input
    
-   
-      
-      input = str(raw_input('What name do you want in the queue? (Up to 9 charicters) DEFAULT = ' + queue_name + ' :\n'))
-      if (len(input) != 0): queue_name = input
-   
+      # Give the job a priority
       clear_screen()
-      input = str(raw_input('What queue priority do you want? (Between -1024 and 1023). DEFAULT = ' + queue_priority + ' :\n'))
+      print "What queue priority do you want? (Between -1024 and 1023)."
+      input = str(raw_input( 'DEFAULT = ' + queue_priority + ' :\n'))
       if (len(input) != 0): queue_priority = input
-   
+
+      # Choose the queue
       clear_screen()
-      input = str(raw_input('What queue do you want to go in? DEFAULT = ' + queue_type + ' :\n'))
-      if (len(input) != 0): queue_type = input
+      print "What queue do you want to go in?" 
+      input = str(raw_input( 'DEFAULT = ' + queue_name + ' :\n'))
+      if (len(input) != 0): queue_name = input
+
+      # Check for out of hours run
+      clear_screen()
+      print 'Do you only want to run jobs out of normal work hours (Monday to Friday 9am - 5pm)?'
+      input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
+      if (len(input) != 0: out_of_hours_string = input
    
       # Run script check
       clear_screen()
-      input = str(raw_input('Do you want to run the script now? DEFAULT = ' + run_script + ' :\n'))
-      if (len(input) != 0): run_script = input
+      print "Do you want to run the script now?"
+      input = str(raw_input( 'DEFAULT = ' + run_script_string + ' :\n'))
+      if (len(input) != 0): run_script_string = input
       
-   
-   
       clear_screen()
 
 
    if debug:
+      print job_name
       print queue_name 
       print queue_priority 
-      print run_script 
+      print run_script_string
+      print out_of_hours_string
 
-   return queue_name, queue_priority, queue_type, run_script;
+   return job_name, queue_priority, queue_name, run_script_string, out_of_hours_string;
 
 def run_the_script(run_script):
-   if ((run_script=='yes') or (run_script=="y")):
+   if run_script:
       subprocess.call(["bash", "run_geos.sh"])
    return;
 
@@ -223,7 +261,7 @@ def create_the_input_files(months, debug=False):
       input_geos.close()
    return;
 
-def create_the_queue_files(months, queue_type, queue_name, queue_priority):
+def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours):
 
    
 # create folder queue files 
@@ -243,19 +281,23 @@ def create_the_queue_files(months, queue_type, queue_name, queue_priority):
          continue
       queue_file_location = os.path.join(dir , (start_time + ".pbs"))
       queue_file = open( queue_file_location, 'wb' )
+# set PBS variables
       queue_file.write(
 """#PBS -j oe
 #PBS -V
-#PBS -q """ + str(queue_type) + """
+#PBS -q """ + str(queue_name) + """
 #     ncpus is number of hyperthreads - the number of physical core is half of that
 #
-#PBS -N """ + queue_name + start_time + """
+#PBS -N """ + job_name + start_time + """
 #PBS -r n
 #
 #PBS -o $PBS_O_WORKDIR/queue_output/
 #
 # Set priority.
-#PBS -p """ + queue_priority + """
+#PBS -p """ + queue_priority )
+
+# set enviroment variables      
+      queue_file.write("""
 #
 set -x
 #
@@ -270,8 +312,25 @@ export MPSTZ=1024M
 export KMP_STACKSIZE=100000000
 export KMP_LIBRARY=turnaround
 export FORT_BUFFERED=true
-ulimit -s 200000000
+ulimit -s 200000000 """)
 
+      # If the run is only ment to start when it is not a work day:
+      if out_of_hours:
+         # get the hour from the system (date +"%H")
+         queue_file.write("""
+if  (( $(date +%u) < 5 ))  && (( 8 < $mytime )) && (($mytime < 18 )) ; then
+   job_number=$(qsub -a 1800 queue_files/""" + str(start_time)+""".pbs)
+   echo $job_number
+   echo "tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:"
+   date
+fi
+
+
+""")
+         continue
+
+# Run geoschem
+      queue_file.write("""
 
 # Make sure using the spinup input file
 
@@ -304,4 +363,4 @@ qsub queue_files/"""+str(months[0])+""".pbs
 
 
 
-main( queue_name, queue_priority, queue_type, run_script, debug )
+main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug )
