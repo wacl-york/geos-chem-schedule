@@ -284,7 +284,8 @@ def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_
       queue_file = open( queue_file_location, 'wb' )
 # set PBS variables
       queue_file.write(
-"""#PBS -j oe
+"""#!/bin/bash
+#PBS -j oe
 #PBS -V
 #PBS -q """ + str(queue_name) + """
 #     ncpus is number of hyperthreads - the number of physical core is half of that
@@ -314,18 +315,25 @@ export MPSTZ=1024M
 export KMP_STACKSIZE=100000000
 export KMP_LIBRARY=turnaround
 export FORT_BUFFERED=true
-ulimit -s 200000000 """)
+ulimit -s 200000000 
 
+#change to the directory that the command was issued from
+cd $PBS_O_WORKDIR
+ehco running in $PBS_O_WORKDIR > log.log
+echo starting on $(date) >> log.log
+
+""")
       # If the run is only ment to start when it is not a work day:
       if out_of_hours:
          # get the hour from the system (date +"%H")
          queue_file.write("""
 
-if  (( $(date +%u) < 5 ))  && (( 8 < $mytime )) && (($mytime < 18 )) ; then
+mytime = $(date +%H)
+if  (( $(date +%u) < 5 ))  && (( 8 > 10#$mytime )) || ((10#$mytime > 18 )) ; then
    job_number=$(qsub -a 1800 queue_files/""" + str(start_time)+""".pbs)
    echo $job_number
-   echo "tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:"
-   date
+   echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
+   echo $(date)>>log.log
    exit
 fi
 
@@ -336,8 +344,6 @@ fi
 
 # Make sure using the spinup input file
 
-#change to the directory that the command was issued from
-cd $PBS_O_WORKDIR
 rm -f input.geos
 ln -s input_files/""" + str(start_time) +""".input.geos input.geos
 /opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > """+ str(start_time) + """.log
