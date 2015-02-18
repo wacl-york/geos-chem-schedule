@@ -292,7 +292,8 @@ def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_
 #PBS -N """ + job_name + start_time + """
 #PBS -r n
 #
-#PBS -o $PBS_O_WORKDIR/queue_output/
+#PBS -o $PBS_O_WORKDIR/queue_output/""" + start_time + """.output
+#PBS -e $PBS_O_WORKDIR/queue_output/""" + start_time + """.error
 #
 # Set priority.
 #PBS -p """ + queue_priority )
