@@ -23,7 +23,7 @@ queue_name           = "batch"         # Name of the queue to submit too
 run_script_string    = "yes"           # Do you want to auto submit the job with this script?
 out_of_hours_string  = "no"            # Do you only want to run out of normal work hours? 
 
-def main( job_name, queue_priority, queue_type, run_script_string, out_of_hours_string, debug ):
+def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug ):
 
    # Get the arguments from the comand line or UI.
    job_name, queue_priority, queue_name, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
