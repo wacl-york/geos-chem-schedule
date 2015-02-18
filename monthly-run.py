@@ -319,7 +319,7 @@ ulimit -s 200000000
 
 #change to the directory that the command was issued from
 cd $PBS_O_WORKDIR
-ehco running in $PBS_O_WORKDIR > log.log
+echo running in $PBS_O_WORKDIR > log.log
 echo starting on $(date) >> log.log
 
 """)
