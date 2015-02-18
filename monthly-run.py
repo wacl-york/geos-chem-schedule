@@ -325,9 +325,8 @@ if  (( $(date +%u) < 5 ))  && (( 8 < $mytime )) && (($mytime < 18 )) ; then
    echo $job_number
    echo "tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:"
    date
-   
+   exit
 fi
-exit
 
 """)
 
