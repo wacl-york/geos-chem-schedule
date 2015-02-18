@@ -26,7 +26,7 @@ out_of_hours_string  = "no"            # Do you only want to run out of normal w
 def main( job_name, queue_priority, queue_type, run_script_string, out_of_hours_string, debug ):
 
    # Get the arguments from the comand line or UI.
-   job_name, queue_priority, queue_type, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
+   job_name, queue_priority, queue_name, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
 
    # Check all the inputs are valid.
    run_script, out_of_hours = check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string)
@@ -51,7 +51,7 @@ def main( job_name, queue_priority, queue_type, run_script_string, out_of_hours_
 
    return;
 
-def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string):
+def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug=True):
    
    queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
@@ -80,6 +80,7 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
    elif (out_of_hours_string in no):
       out_of_hours = False
 
+   if debug: print str(out_of_hours)
 
    return run_script, out_of_hours;
 
