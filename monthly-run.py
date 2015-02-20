@@ -225,12 +225,10 @@ def create_the_input_files(months, debug=False):
       os.makedirs(dir)     
 
 
-   first_month = True
 # modify the input files to have the correct start months
    for month in months:
       end_time = month
-      if first_month:
-         first_month = False
+      if (month == months[0]):
          start_time = month
          continue
       
@@ -271,13 +269,10 @@ def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_
       os.makedirs(dir)     
       
 
-
-   first_month = True
 # modify the input files to have the correct start months
    for month in months:
       end_time = month
-      if first_month:
-         first_month = False
+      if month == months[0]:
          start_time = month
          continue
       queue_file_location = os.path.join(dir , (start_time + ".pbs"))
