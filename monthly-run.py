@@ -332,6 +332,7 @@ mytime = $(date +%H)
 if  (( $(date +%u) < 5 ))  && (( 8 > 10#$mytime )) || ((10#$mytime > 17 )) ; then
    job_number=$(qsub -a 1800 queue_files/""" + str(start_time)+""".pbs)
    echo $job_number
+   echo qdel $job_numner > exit_geos.sh
    echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
    echo $(date)>>log.log
    exit
