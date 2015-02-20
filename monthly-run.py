@@ -7,21 +7,19 @@ import sys
 import math
 import shutil
 import subprocess
+from monthly_run_settings import run_completion_script
+from monthly_run_settings import job_name
+from monthly_run_settings import queue_priority
+from monthly_run_settings import queue_name
+from monthly_run_settings import run_script_string
+from monthly_run_settings import out_of_hours_string
+from monthly_run_settings import debug
+from monthly_run_settings import email_option, email_address, email_setting
 # Inputs
 
 # Automaticaly submit the generated run script
 
 # If cmnd line arg then run silently, else ask
-
-debug=True
-
-#Defaults
-
-job_name             = "GEOS"          # Name of the job that appears in qstat
-queue_priority       = "-1000"         # Priority of the job
-queue_name           = "batch"         # Name of the queue to submit too
-run_script_string    = "yes"           # Do you want to auto submit the job with this script?
-out_of_hours_string  = "no"            # Do you only want to run out of normal work hours? 
 
 def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug ):
 
@@ -29,7 +27,7 @@ def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_
    job_name, queue_priority, queue_name, run_script_string, out_of_hours_string = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug)
 
    # Check all the inputs are valid.
-   run_script, out_of_hours = check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string)
+   run_script, out_of_hours, email= check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, email_option)
 
    # Check the start and end dates are compatible with the script.
    start_date, end_date = get_start_and_end_dates()
@@ -41,7 +39,7 @@ def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_
    create_the_input_files(months)
   
    # Create the queue files.
-   create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours)
+   create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours, email)
 
    # Create the run script.
    create_the_run_script(months)
@@ -68,6 +66,8 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
 
    assert (run_script_string in yes) or (run_script_string in no), "Unrecognised option for run the script on completion. Try one of: " + str(yes) + str(no)
 
+   assert (email_option in yes) or (email_option in no), "Email option is neither yes or no, please check the settings. Try one of: " + str(yes) + str(no)
+
 
    # Create the logicals
    if (run_script_string in yes):
@@ -80,9 +80,15 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
    elif (out_of_hours_string in no):
       out_of_hours = False
 
+   if (email_option in yes):
+      email = True
+   elif (email_option in no):
+      email = False
+   
+
    if debug: print str(out_of_hours)
 
-   return run_script, out_of_hours;
+   return run_script, out_of_hours, email;
 
 def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, debug):
 
@@ -260,7 +266,7 @@ def create_the_input_files(months, debug=False):
       input_geos.close()
    return;
 
-def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours):
+def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours, email):
 
    
 # create folder queue files 
@@ -292,7 +298,19 @@ def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_
 #PBS -e $PBS_O_WORKDIR/queue_output/""" + start_time + """.error
 #
 # Set priority.
-#PBS -p """ + queue_priority )
+#PBS -p """ + queue_priority + """
+""")
+
+      # if the final month and we want to email:
+      if month == months[-1]:
+         if email:
+            queue_file.write("""
+#PBS -m """ + email_setting + """
+#PBS -M """ + email_address + """
+""")
+
+
+
 
 # set enviroment variables      
       queue_file.write("""
@@ -350,6 +368,11 @@ echo qdel $job_number > exit_geos.sh
 chmod 775 exit_geos.sh
 """
    )
+   
+      # If this is the final month then run an extra command
+      if month == months[-1]:
+         run_completion_script(job_name)
+
       queue_file.close()
       start_time = month
    return;
