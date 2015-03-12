@@ -294,8 +294,8 @@ def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_
 #PBS -N """ + job_name + start_time + """
 #PBS -r n
 #
-#PBS -o $PBS_O_WORKDIR/queue_output/""" + start_time + """.output
-#PBS -e $PBS_O_WORKDIR/queue_output/""" + start_time + """.error
+#PBS -o queue_output/""" + start_time + """.output
+#PBS -e queue_output/""" + start_time + """.error
 #
 # Set priority.
 #PBS -p """ + queue_priority + """
@@ -341,14 +341,13 @@ echo starting on $(date) >> log.log
          # get the hour from the system (date +"%H")
          queue_file.write("""
 
-mytime = $(date +%H)
-if  (( $(date +%u) < 5 ))  && (( 8 > 10#$mytime )) || ((10#$mytime > 17 )) ; then
-   job_number=$(qsub -a 1800 queue_files/""" + str(start_time)+""".pbs)
+if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
+   job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
    echo $job_number
    echo qdel $job_numner > exit_geos.sh
    echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
    echo $(date)>>log.log
-   exit
+   exit 1
 fi
 
 """)
