@@ -55,8 +55,6 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
    no          = ['no', 'NO', 'No', 'N', 'n'] 
 
-   # Only take the first 9 charicters from the job name
-   job_name = job_name[:9]
 
    assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
 
@@ -156,6 +154,8 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
       
       clear_screen()
 
+   # Only take the first 9 charicters from the job name
+   job_name = job_name[:9]
 
    if debug:
       print "job name         = " + str(job_name[:9])
