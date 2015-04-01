@@ -359,7 +359,7 @@ fi
 
 rm -f input.geos
 ln -s input_files/""" + str(start_time) +""".input.geos input.geos
-/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > """+ str(start_time) + """.log
+/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > """+ str(start_time) + """.geos.log
 mv ctm.bpch """+str(start_time)+""".ctm.bpch
 job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
 echo $job_number
