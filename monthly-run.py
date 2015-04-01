@@ -55,7 +55,8 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
    no          = ['no', 'NO', 'No', 'N', 'n'] 
 
-   assert (len(job_name) <= 9), "Job name is too long," + str(len(job_name)) + " charicters long"
+   # Only take the first 9 charicters from the job name
+   job_name = job_name[:9]
 
    assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
 
@@ -125,7 +126,7 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
    
       # Name the queue
       clear_screen()
-      print "What name do you want in the queue? (Up to 9 charicters)."
+      print "What name do you want in the queue? (Will truncate to 9 charicters)."
       input = str(raw_input( 'DEFAULT = ' + job_name + ' :\n'))
       if (len(input) != 0): job_name = input
    
@@ -157,7 +158,7 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
 
 
    if debug:
-      print "job name         = " + str(job_name)
+      print "job name         = " + str(job_name[:9])
       print "queue name       = " + str(queue_name)
       print "queue priority   = " + str(queue_priority )
       print "run script       = " + str(run_script_string)

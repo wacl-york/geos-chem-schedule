@@ -19,6 +19,7 @@ This will call the job bob in the queue. It will be submitted to the run queue w
 
 2015-04-01
 Updated the naming scheme of the log to month.geos.log
+Changed from an error if the job name is over 9 characters to truncating the name to only 9 characters.
 
 2015-02-18
 Added options to submit arguments from the command line instead of the UI
