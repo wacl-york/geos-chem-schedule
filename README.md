@@ -17,10 +17,13 @@ Explination:
 This will call the job bob in the queue. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
 
 
+2015-04-01
+Updated the naming scheme of the log to month.geos.log
+
 2015-02-18
 Added options to submit arguments from the command line instead of the UI
 Added an option to only start jobs out of work hours (0800-1800 Monday - Friday)
-
+Changed the naming scheme of the logs.
 
 2015-01-14
 Option to send the run script to the queue streight away.
