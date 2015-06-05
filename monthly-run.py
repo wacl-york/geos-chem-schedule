@@ -327,6 +327,11 @@ def create_the_input_files(months, debug=False):
          elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
             newline = line[:26] + str(end_time) + line[32:] 
             output_file.write(newline)
+         
+         # Force CSPEC on
+         elif line.startswith("Read and save CSPEC_FULL:"):
+            newline = line[:26] + ' T \n' 
+            output_file.write(newline)
          else: 
             newline = line
             output_file.write(newline)
