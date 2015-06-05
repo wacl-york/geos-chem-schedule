@@ -2,55 +2,77 @@
 
 # monthly-run.py
 
-import os
-import sys
-import math
-import shutil
-import subprocess
-from monthly_run_settings import run_completion_script
-from monthly_run_settings import job_name
-from monthly_run_settings import queue_priority
-from monthly_run_settings import queue_name
-from monthly_run_settings import run_script_string
-from monthly_run_settings import out_of_hours_string
-from monthly_run_settings import debug
-from monthly_run_settings import email_option, email_address, email_setting
-from monthly_run_settings import wall_time
-# Inputs
 
-# Automaticaly submit the generated run script
+DEBUG = False
 
-# If cmnd line arg then run silently, else ask
+# Change the defaults here
 
-def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug ):
+class GET_INPUTS:
+   def __init__(self):
+      self.job_name           = "GEOS"    # Name of the job that appears in qstat
+      self.queue_priority     = "0"       # Priority of the job
+      self.queue_name         = "run"     # Name of the queue to submit too
+      self.run_script_string  = "yes"     # Do you want to run the script streight away?
+      self.out_of_hours_string= "no"      # Do you only want to run evenings and weekends?
+      self.wall_time          = "10:00:00"# How long will a month take at most?
+      self.email_option       = "yes"     # Do you want an email sending upon completion?
+      self.email_address      = "bn506+PBS@york.ac.uk"
+      self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
+
+# If you have a script you would like to run upon completion, such as analyse some results, or turn results into a different format, then insert it in the run_completion_script function.
+
+
+def run_completion_script(job_name):
+   import subprocess
+#   subprocess.call( 'A script'
+   return
+
+#def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug ):
+def main( debug=DEBUG ):
+
+   import os
+   import sys
+   import math
+   import shutil
+   import subprocess
+
+   # Get the default inputs as a class
+   inputs = GET_INPUTS()
 
    # Get the arguments from the comand line or UI.
-   job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time = get_arguments( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug=False)
+   inputs = get_arguments( inputs, debug=DEBUG)
 
    # Check all the inputs are valid.
-   run_script, out_of_hours, email= check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, email_option, wall_time)
+   inputs = check_inputs(inputs, debug=DEBUG)
 
    # Check the start and end dates are compatible with the script.
    start_date, end_date = get_start_and_end_dates()
 
    # Calculate the list of months.
-   months = list_of_months_to_run( start_date, end_date )
+   times = list_of_months_to_run( start_date, end_date )
    
    # Create the individual month input files.
-   create_the_input_files(months)
+   create_the_input_files(times)
   
    # Create the queue files.
-   create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours, wall_time, email)
+   create_the_queue_files(times, inputs, debug=DEBUG )
 
    # Create the run script.
-   create_the_run_script(months)
+   create_the_run_script(times)
 
    # Send the script to the queue if wanted.
-   run_the_script(run_script)
+   run_the_script(inputs.run_script)
 
    return;
 
-def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, email_option, wall_time, debug=True):
+def check_inputs(inputs, debug=False):
+   job_name = inputs.job_name
+   queue_priority = inputs.queue_priority
+   queue_name = inputs.queue_name
+   run_script_string = inputs.run_script_string
+   out_of_hours_string = inputs.out_of_hours_string
+   email_option = inputs.email_option
+   wall_time = inputs.wall_time
    
    queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
@@ -88,9 +110,22 @@ def check_inputs(job_name, queue_priority, queue_name, run_script_string, out_of
 
    if debug: print str(out_of_hours)
 
-   return run_script, out_of_hours, email;
+   inputs.run_script = run_script
+   inputs.out_of_hours = out_of_hours
+   inputs.email = email
 
-def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug=False):
+   return inputs;
+
+def get_arguments(inputs, debug=DEBUG):
+
+   job_name = inputs.job_name
+   queue_priority = inputs.queue_priority
+   queue_name  = inputs.queue_name
+   run_script_string = inputs.run_script_string
+   out_of_hours_string = inputs.out_of_hours_string
+   wall_time = inputs.wall_time
+
+
 
 
    # If there are no arguments then run the gui.
@@ -184,7 +219,14 @@ def get_arguments(job_name, queue_priority, queue_name, run_script_string, out_o
       print "wall time        = " + str(wall_time)
       print "out of hours     = " + str(out_of_hours_string)
 
-   return job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time;
+   inputs.job_name = job_name
+   inputs.queue_priority = queue_priority
+   inputs.run_script_string = run_script_string
+   inputs.out_of_hours_string = out_of_hours_string
+   inputs.wall_time = wall_time
+
+
+   return inputs;
 
 def run_the_script(run_script):
    if run_script:
@@ -287,8 +329,16 @@ def create_the_input_files(months, debug=False):
       input_geos.close()
    return;
 
-def create_the_queue_files(months, queue_name, job_name, queue_priority, out_of_hours, wall_time, email):
+def create_the_queue_files(months, inputs, debug=DEBUG ):
 
+   queue_name = inputs.queue_name
+   job_name = inputs.job_name
+   queue_priority = inputs.queue_priority
+   out_of_hours = inputs.out_of_hours
+   wall_time = inputs.wall_time
+   email = inputs.email
+   email_address = inputs.email_address
+   email_setting = inputs.email_setting
    
 # create folder queue files 
    dir = os.path.dirname("queue_files/")
@@ -412,4 +462,4 @@ qsub queue_files/"""+str(months[0])+""".pbs
 
 
 
-main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug )
+main( debug=DEBUG )
