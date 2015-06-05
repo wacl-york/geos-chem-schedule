@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-# monthly-run.py
+# file name = monthly-run.py
+
+# Splits up GEOSChem runs into smaller jobs, to be fairer on the queues.
 
 
 DEBUG = False
@@ -19,22 +21,26 @@ class GET_INPUTS:
       self.email_address      = "bn506+PBS@york.ac.uk"
       self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
 
+
+
 # If you have a script you would like to run upon completion, such as analyse some results, or turn results into a different format, then insert it in the run_completion_script function.
-
-
 def run_completion_script(job_name):
    import subprocess
-#   subprocess.call( 'A script'
+#   subprocess.call( 'A script' )
    return
 
-#def main( job_name, queue_priority, queue_name, run_script_string, out_of_hours_string, wall_time, debug ):
+
+# Nothing below here should need changing, but feel free to look.
+
+
+import os
+import sys
+import math
+import shutil
+import subprocess
+
 def main( debug=DEBUG ):
 
-   import os
-   import sys
-   import math
-   import shutil
-   import subprocess
 
    # Get the default inputs as a class
    inputs = GET_INPUTS()
