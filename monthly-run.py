@@ -16,7 +16,7 @@ class GET_INPUTS:
       self.queue_name         = "run"     # Name of the queue to submit too
       self.run_script_string  = "yes"     # Do you want to run the script streight away?
       self.out_of_hours_string= "no"      # Do you only want to run evenings and weekends?
-      self.wall_time          = "10:00:00"# How long will a month take at most?
+      self.wall_time          = "2:00:00"# How long will a month take at most?
       self.email_option       = "yes"     # Do you want an email sending upon completion?
       self.email_address      = "bn506+PBS@york.ac.uk"
       self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
@@ -262,7 +262,7 @@ def get_start_and_end_dates():
 
    return start_date, end_date;
 
-def list_of_months_to_run( start_date, end_date):
+def list_of_months_to_run( start_date, end_date, debug=False):
    start_year = int(start_date[0:4])
    start_month = int(start_date[4:6])
    end_year = int(end_date[0:4])
@@ -287,7 +287,7 @@ def list_of_months_to_run( start_date, end_date):
       months.append( str(int(math.floor(item/12))) + str((item%12)+1).zfill(2) )  
 
    for month in months:
-      print month
+      if debug: print month
 
    return months;
 
