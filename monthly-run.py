@@ -428,26 +428,34 @@ export KMP_LIBRARY=turnaround
 export FORT_BUFFERED=true
 ulimit -s 200000000 
 
+""")
+
+      if out_of_hours:
+         queue_file.write("""
+export out_of_hours=true
+""")
+
+
+queue_file.write("""
+
+
 #change to the directory that the command was issued from
 cd $PBS_O_WORKDIR
 echo running in $PBS_O_WORKDIR > log.log
 echo starting on $(date) >> log.log
 
-""")
-      # If the run is only ment to start when it is not a work day:
-      if out_of_hours:
-         # get the hour from the system (date +"%H")
-         queue_file.write("""
-
-if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
-   job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
-   echo $job_number
-   echo qdel $job_numner > exit_geos.sh
-   echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
-   echo $(date)>>log.log
-   exit 1
+if ! [ out_of_hours_overide ]; then
+   if $out_of_hours ; then 
+      if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
+         job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
+         echo $job_number
+         echo qdel $job_numner > exit_geos.sh
+         echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
+         echo $(date)>>log.log
+         exit 1
+      fi
+   fi
 fi
-
 """)
 
 # Run geoschem
@@ -462,8 +470,15 @@ rm -f input.geos
 ln -s input_files/""" + str(start_time) +""".input.geos input.geos
 /opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > """+ str(start_time) + """.geos.log
 mv ctm.bpch """+str(start_time)+""".ctm.bpch
-job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
-echo $job_number
+
+# Only submit the next month if GEOSCHEM completed correctly
+last_line = tail -n1 """ + str(start_tune) + """.geos.log 
+complete_last_line = **************   E N D   O F   G E O S -- C H E M   **************
+
+if [ $last_line = $complete_last_line]; then
+   job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
+   echo $job_number
+fi
 """
    )
    
