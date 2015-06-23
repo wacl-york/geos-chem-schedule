@@ -56,6 +56,9 @@ def main( debug=DEBUG ):
 
    # Calculate the list of months.
    times = list_of_months_to_run( start_date, end_date )
+
+   # Make a backup of the input.geos file.
+   backup_the_input_file()
    
    # Create the individual month input files.
    create_the_input_files(times)
@@ -121,6 +124,18 @@ def check_inputs(inputs, debug=False):
    inputs.email = email
 
    return inputs;
+
+
+def backup_the_input_file()
+
+   input_file = "input.geos"
+   bacukp_input_file = "input.geos.orig"
+
+   if not os.path.isfile( backup_input_file )
+      shutil.copyfile( input_file, backup_input_file )
+   
+   return;
+
 
 def get_arguments(inputs, debug=DEBUG):
 
