@@ -126,12 +126,12 @@ def check_inputs(inputs, debug=False):
    return inputs;
 
 
-def backup_the_input_file()
+def backup_the_input_file():
 
    input_file = "input.geos"
-   bacukp_input_file = "input.geos.orig"
+   backup_input_file = "input.geos.orig"
 
-   if not os.path.isfile( backup_input_file )
+   if not os.path.isfile( backup_input_file ):
       shutil.copyfile( input_file, backup_input_file )
    
    return;
@@ -436,7 +436,7 @@ export out_of_hours=true
 """)
 
 
-queue_file.write("""
+         queue_file.write("""
 
 
 #change to the directory that the command was issued from
@@ -456,10 +456,7 @@ if ! [ out_of_hours_overide ]; then
       fi
    fi
 fi
-""")
 
-# Run geoschem
-      queue_file.write("""
 # Create the exit file
 echo qdel $job_number > exit_geos.sh
 chmod 775 exit_geos.sh
@@ -472,7 +469,7 @@ ln -s input_files/""" + str(start_time) +""".input.geos input.geos
 mv ctm.bpch """+str(start_time)+""".ctm.bpch
 
 # Only submit the next month if GEOSCHEM completed correctly
-last_line = tail -n1 """ + str(start_tune) + """.geos.log 
+last_line = tail -n1 """ + str(start_time) + """.geos.log 
 complete_last_line = **************   E N D   O F   G E O S -- C H E M   **************
 
 if [ $last_line = $complete_last_line]; then
