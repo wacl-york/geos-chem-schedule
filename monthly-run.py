@@ -15,7 +15,7 @@ class GET_INPUTS:
       self.queue_priority     = "0"       # Priority of the job
       self.queue_name         = "run"     # Name of the queue to submit too
       self.run_script_string  = "yes"     # Do you want to run the script streight away?
-      self.out_of_hours_string= "no"      # Do you only want to run evenings and weekends?
+      self.out_of_hours_string= "yes"      # Do you only want to run evenings and weekends?
       self.wall_time          = "2:00:00"# How long will a month take at most?
       self.email_option       = "yes"     # Do you want an email sending upon completion?
       self.email_address      = "bn506+PBS@york.ac.uk"
@@ -444,7 +444,7 @@ cd $PBS_O_WORKDIR
 echo running in $PBS_O_WORKDIR > log.log
 echo starting on $(date) >> log.log
 
-if ! [ out_of_hours_overide ]; then
+if ! [ $out_of_hours_overide ]; then
    if $out_of_hours ; then 
       if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
          job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
