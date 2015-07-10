@@ -20,7 +20,7 @@ class GET_INPUTS:
       self.email_option       = "yes"     # Do you want an email sending upon completion?
       self.email_address      = "bn506+PBS@york.ac.uk"
       self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
-
+      self.memory_need        = "10gb"    # How much memory do you need? 
 
 
 # If you have a script you would like to run upon completion, such as analyse some results, or turn results into a different format, then insert it in the run_completion_script function.
@@ -145,7 +145,7 @@ def get_arguments(inputs, debug=DEBUG):
    run_script_string = inputs.run_script_string
    out_of_hours_string = inputs.out_of_hours_string
    wall_time = inputs.wall_time
-
+   memory_need = inputs.memory_need
 
 
 
@@ -165,6 +165,8 @@ def get_arguments(inputs, debug=DEBUG):
             out_of_hours_string = arg[15:] 
          elif arg.startswith("--wall-time="):
             wall_time = arg[12:] 
+         elif arg.startswith("--memory-need="):
+            wall_time = arg[14:] 
          elif arg.startswith("--help"):
             print "monthly-run.py\n"
 
@@ -176,6 +178,7 @@ def get_arguments(inputs, debug=DEBUG):
             print "--submit=\n"
             print "--out-of-hours=\n"
             print "--wall-time=\n"
+            print "--memory-need=\n"
             print "e.g. to set the queue name to 'bob' write --queue-name=bob \n"
          else:
              print "Invalid argument "+ arg +"\nTry --help for more info.\n"
@@ -212,6 +215,13 @@ def get_arguments(inputs, debug=DEBUG):
       input = str(raw_input( 'DEFAULT = ' + wall_time + ' :\n'))
       if (len(input) != 0): wall_time = input
 
+      # Set the memory requirements for the run 
+      clear_screen()
+      print "How much memory does your run need. Lower amounts may increase priority.\n Example 4gb, 200mb,200000kb."
+      input = str(raw_input( 'DEFAULT = ' + memory_need + ' :\n'))
+      if (len(input) != 0): memory_need = input
+
+
       # Run script check
       clear_screen()
       print "Do you want to run the script now?"
@@ -231,6 +241,7 @@ def get_arguments(inputs, debug=DEBUG):
    run_script_string  = run_script_string.strip()
    wall_time          = wall_time.strip()
    out_of_hours_string= out_of_hours_string.strip()
+   memory_need        = memory_need.strip()
 
    if debug:
       print "job name         = " + str(job_name[:9])
@@ -238,6 +249,7 @@ def get_arguments(inputs, debug=DEBUG):
       print "queue priority   = " + str(queue_priority )
       print "run script       = " + str(run_script_string)
       print "wall time        = " + str(wall_time)
+      print "memory_need      = " + str(memory_need)
       print "out of hours     = " + str(out_of_hours_string)
 
    inputs.job_name = job_name
@@ -245,7 +257,7 @@ def get_arguments(inputs, debug=DEBUG):
    inputs.run_script_string = run_script_string
    inputs.out_of_hours_string = out_of_hours_string
    inputs.wall_time = wall_time
-
+   inputs.memory_need = memory_need
 
    return inputs;
 
@@ -365,7 +377,7 @@ def create_the_queue_files(months, inputs, debug=DEBUG ):
    email = inputs.email
    email_address = inputs.email_address
    email_setting = inputs.email_setting
-   
+   memory_need   = inputs.memory_need
 # create folder queue files 
    dir = os.path.dirname("queue_files/")
    if not os.path.exists(dir):
@@ -391,6 +403,7 @@ def create_the_queue_files(months, inputs, debug=DEBUG ):
 #PBS -N """ + job_name + start_time + """
 #PBS -r n
 #PBS -l walltime=""" + wall_time + """
+#PBS -l mem=""" + memory_need + """
 #
 #PBS -o queue_output/""" + start_time + """.output
 #PBS -e queue_output/""" + start_time + """.error
@@ -434,7 +447,10 @@ ulimit -s 200000000
          queue_file.write("""
 export out_of_hours=true
 """)
-
+      else:
+         queue_file.write("""
+export out_of_hours=false
+""")
 
       queue_file.write("""
 
@@ -443,6 +459,12 @@ export out_of_hours=true
 cd $PBS_O_WORKDIR
 echo running in $PBS_O_WORKDIR > log.log
 echo starting on $(date) >> log.log
+
+# If the out of hours overide is not set in bash then set it here
+if [ -z $out_of_hours_overide ]; then
+   export out_of_hours_overide=false
+fi
+
 
 if ! [ $out_of_hours_overide ]; then
    if $out_of_hours ; then 
