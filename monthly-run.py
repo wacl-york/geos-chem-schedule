@@ -463,10 +463,11 @@ echo starting on $(date) >> log.log
 # If the out of hours overide is not set in bash then set it here
 if [ -z $out_of_hours_overide ]; then
    export out_of_hours_overide=false
+   echo out_of_hours_overide is not set in bashrc >> log.log
 fi
 
 
-if ! [ $out_of_hours_overide ]; then
+if ! ( $out_of_hours_overide ); then
    if $out_of_hours ; then 
       if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
          job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
