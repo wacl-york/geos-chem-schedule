@@ -404,6 +404,7 @@ def create_the_queue_files(months, inputs, debug=DEBUG ):
 #PBS -r n
 #PBS -l walltime=""" + wall_time + """
 #PBS -l mem=""" + memory_need + """
+#PBS -l nodes=1:ppn=16
 #
 #PBS -o queue_output/""" + start_time + """.output
 #PBS -e queue_output/""" + start_time + """.error
