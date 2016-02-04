@@ -10,24 +10,24 @@ DEBUG = False
 # Change the defaults here
 
 class GET_INPUTS:
-   def __init__(self):
-      self.job_name           = "GEOS"    # Name of the job that appears in qstat
-      self.queue_priority     = "0"       # Priority of the job
-      self.queue_name         = "run"     # Name of the queue to submit too
-      self.run_script_string  = "yes"     # Do you want to run the script streight away?
-      self.out_of_hours_string= "yes"      # Do you only want to run evenings and weekends?
-      self.wall_time          = "2:00:00"# How long will a month take at most?
-      self.email_option       = "yes"     # Do you want an email sending upon completion?
-      self.email_address      = "bn506+PBS@york.ac.uk"
-      self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
-      self.memory_need        = "10gb"    # How much memory do you need? 
+    def __init__(self):
+        self.job_name           = "GEOS"    # Name of the job that appears in qstat
+        self.queue_priority     = "0"       # Priority of the job
+        self.queue_name         = "run"     # Name of the queue to submit too
+        self.run_script_string  = "yes"     # Do you want to run the script streight away?
+        self.out_of_hours_string= "yes"      # Do you only want to run evenings and weekends?
+        self.wall_time          = "2:00:00"# How long will a month take at most?
+        self.email_option       = "yes"     # Do you want an email sending upon completion?
+        self.email_address      = "bn506+PBS@york.ac.uk"
+        self.email_setting      = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
+        self.memory_need        = "10gb"    # How much memory do you need? 
 
 
 # If you have a script you would like to run upon completion, such as analyse some results, or turn results into a different format, then insert it in the run_completion_script function.
 def run_completion_script(job_name):
-   import subprocess
-#   subprocess.call( 'A script' )
-   return
+    import subprocess
+    #   subprocess.call( 'A script' )
+    return
 
 
 # Nothing below here should need changing, but feel free to look.
@@ -42,88 +42,89 @@ import subprocess
 def main( debug=DEBUG ):
 
 
-   # Get the default inputs as a class
-   inputs = GET_INPUTS()
-
-   # Get the arguments from the comand line or UI.
-   inputs = get_arguments( inputs, debug=DEBUG)
-
-   # Check all the inputs are valid.
-   inputs = check_inputs(inputs, debug=DEBUG)
-
-   # Check the start and end dates are compatible with the script.
-   start_date, end_date = get_start_and_end_dates()
-
-   # Calculate the list of months.
-   times = list_of_months_to_run( start_date, end_date )
-
-   # Make a backup of the input.geos file.
-   backup_the_input_file()
+    # Get the default inputs as a class
+    inputs = GET_INPUTS()
+ 
+    # Get the arguments from the comand line or UI.
+    inputs = get_arguments( inputs, debug=DEBUG)
+ 
+    # Check all the inputs are valid.
+    inputs = check_inputs(inputs, debug=DEBUG)
+ 
+    # Check the start and end dates are compatible with the script.
+    start_date, end_date = get_start_and_end_dates()
+ 
+    # Calculate the list of months.
+    times = list_of_months_to_run( start_date, end_date )
+ 
+    # Make a backup of the input.geos file.
+    backup_the_input_file()
+    
+    # Create the individual month input files.
+    create_the_input_files(times)
    
-   # Create the individual month input files.
-   create_the_input_files(times)
-  
-   # Create the queue files.
-   create_the_queue_files(times, inputs, debug=DEBUG )
-
-   # Create the run script.
-   create_the_run_script(times)
-
-   # Send the script to the queue if wanted.
-   run_the_script(inputs.run_script)
-
-   return;
+    # Create the queue files.
+    create_the_queue_files(times, inputs, debug=DEBUG )
+ 
+    # Create the run script.
+    create_the_run_script(times)
+ 
+    # Send the script to the queue if wanted.
+    run_the_script(inputs.run_script)
+ 
+    return;
 
 def check_inputs(inputs, debug=False):
-   job_name = inputs.job_name
-   queue_priority = inputs.queue_priority
-   queue_name = inputs.queue_name
-   run_script_string = inputs.run_script_string
-   out_of_hours_string = inputs.out_of_hours_string
-   email_option = inputs.email_option
-   wall_time = inputs.wall_time
-   
-   queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
-   yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
-   no          = ['no', 'NO', 'No', 'N', 'n'] 
 
-
-   assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
-
-   assert (queue_name in queue_names), "Unrecognised queue type: " + str(queue_name)
-
-   
-   assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), "Unrecognised option for out of hours. Try one of: " + str(yes) + str(no)+'. The command given was "' + run_script_string +'".'
-
-   assert (run_script_string in yes) or (run_script_string in no), "Unrecognised option for run the script on completion. Try one of: " + str(yes) + str(no) +'. The command given was "' + run_script_string + '".'
-
-   assert (email_option in yes) or (email_option in no), "Email option is neither yes or no, please check the settings. Try one of: " + str(yes) + str(no)
-
-
-   # Create the logicals
-   if (run_script_string in yes):
-      run_script = True
-   elif (run_script_string in no):
-      run_script = False
-
-   if (out_of_hours_string in yes):
-      out_of_hours = True
-   elif (out_of_hours_string in no):
-      out_of_hours = False
-
-   if (email_option in yes):
-      email = True
-   elif (email_option in no):
-      email = False
-   
-
-   if debug: print str(out_of_hours)
-
-   inputs.run_script = run_script
-   inputs.out_of_hours = out_of_hours
-   inputs.email = email
-
-   return inputs;
+    job_name = inputs.job_name
+    queue_priority = inputs.queue_priority
+    queue_name = inputs.queue_name
+    run_script_string = inputs.run_script_string
+    out_of_hours_string = inputs.out_of_hours_string
+    email_option = inputs.email_option
+    wall_time = inputs.wall_time
+    
+    queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
+    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
+    no          = ['no', 'NO', 'No', 'N', 'n'] 
+ 
+ 
+    assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
+ 
+    assert (queue_name in queue_names), "Unrecognised queue type: " + str(queue_name)
+ 
+    
+    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), "Unrecognised option for out of hours. Try one of: " + str(yes) + str(no)+'. The command given was "' + run_script_string +'".'
+ 
+    assert (run_script_string in yes) or (run_script_string in no), "Unrecognised option for run the script on completion. Try one of: " + str(yes) + str(no) +'. The command given was "' + run_script_string + '".'
+ 
+    assert (email_option in yes) or (email_option in no), "Email option is neither yes or no, please check the settings. Try one of: " + str(yes) + str(no)
+ 
+ 
+    # Create the logicals
+    if (run_script_string in yes):
+       run_script = True
+    elif (run_script_string in no):
+       run_script = False
+ 
+    if (out_of_hours_string in yes):
+       out_of_hours = True
+    elif (out_of_hours_string in no):
+       out_of_hours = False
+ 
+    if (email_option in yes):
+       email = True
+    elif (email_option in no):
+       email = False
+    
+ 
+    if debug: print str(out_of_hours)
+ 
+    inputs.run_script = run_script
+    inputs.out_of_hours = out_of_hours
+    inputs.email = email
+ 
+    return inputs;
 
 
 def backup_the_input_file():
@@ -382,7 +383,9 @@ def create_the_queue_files(months, inputs, debug=DEBUG ):
    dir = os.path.dirname("queue_files/")
    if not os.path.exists(dir):
       os.makedirs(dir)     
-      
+   pbs_output_dir = os.path.dirname("queue_output/")
+   if not os.path.exists(dir):
+      os.makedirs(pbs_output_dir)   
 
 # modify the input files to have the correct start months
    for month in months:
