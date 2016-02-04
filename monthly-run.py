@@ -357,7 +357,7 @@ def create_the_input_files(months, debug=False):
          
          # Force CSPEC on
          elif line.startswith("Read and save CSPEC_FULL:"):
-            newline = line[:26] + ' T \n' 
+            newline = line[:26] + 'T \n' 
             output_file.write(newline)
          else: 
             newline = line
