@@ -5,6 +5,30 @@ Creates a script that splits up a single geoschem input file into multiple jobs 
 
 WARNING: Make a backup of your input file incase the script brakes it.( It makes a backup to input.geos.orig, so dont call the backup this)
 
+INSTALL
+
+To install download this repository with git clone either with MChem_tools or on its own.
+Once downloaded, navigate to the monthly run folder containing monthly-run.py and use the command below to make the script excecutable.
+
+chmod +x monthly-run.py
+
+To make the program excecutable from any directory we need to create a symbolic link to your local ~/bin folder.
+
+ln -s montly-run.py $HOME/bin/monthly-run
+
+If your ~/bin folder does not exist then you can create one with the command below and then try again.
+
+mkdir $HOME/bin
+
+Now update your envoroment or log off and on to be able to run the command "monthly-run" from anywhere.
+
+source $HOME/.bashrc
+
+
+
+
+
+
 The python script creates a bach submit script that you can run using:
 BASH run_geos.sh
 
