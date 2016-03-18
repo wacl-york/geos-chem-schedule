@@ -384,7 +384,7 @@ def create_the_queue_files(months, inputs, debug=DEBUG ):
    if not os.path.exists(dir):
       os.makedirs(dir)     
    pbs_output_dir = os.path.dirname("queue_output/")
-   if not os.path.exists(dir):
+   if not os.path.exists(pbs_output_dir):
       os.makedirs(pbs_output_dir)   
 
 # modify the input files to have the correct start months
