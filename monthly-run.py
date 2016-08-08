@@ -254,6 +254,7 @@ def get_arguments(inputs, debug=DEBUG):
       print "out of hours     = " + str(out_of_hours_string)
 
    inputs.job_name = job_name
+   inputs.queue_name = queue_name
    inputs.queue_priority = queue_priority
    inputs.run_script_string = run_script_string
    inputs.out_of_hours_string = out_of_hours_string
