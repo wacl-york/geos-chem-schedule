@@ -15,7 +15,7 @@ class GET_INPUTS:
         self.queue_priority     = "0"       # Priority of the job
         self.queue_name         = "run"     # Name of the queue to submit too
         self.run_script_string  = "yes"     # Do you want to run the script streight away?
-        self.out_of_hours_string= "yes"      # Do you only want to run evenings and weekends?
+        self.out_of_hours_string= "no"      # Do you only want to run evenings and weekends?
         self.wall_time          = "2:00:00"# How long will a month take at most?
         self.email_option       = "yes"     # Do you want an email sending upon completion?
         self.email_address      = "bn506+PBS@york.ac.uk"
@@ -140,13 +140,6 @@ def backup_the_input_file():
 
 def get_arguments(inputs, debug=DEBUG):
 
-   job_name = inputs.job_name
-   queue_priority = inputs.queue_priority
-   queue_name  = inputs.queue_name
-   run_script_string = inputs.run_script_string
-   out_of_hours_string = inputs.out_of_hours_string
-   wall_time = inputs.wall_time
-   memory_need = inputs.memory_need
 
 
 
@@ -185,7 +178,19 @@ def get_arguments(inputs, debug=DEBUG):
              print "Invalid argument "+ arg +"\nTry --help for more info.\n"
 
    else:
-   
+
+    inputs = get_variables_from_cli(inputs)
+
+    def get_variables_from_cli(inputs)
+
+      job_name = inputs.job_name
+      queue_priority = inputs.queue_priority
+      queue_name  = inputs.queue_name
+      run_script_string = inputs.run_script_string
+      out_of_hours_string = inputs.out_of_hours_string
+      wall_time = inputs.wall_time
+      memory_need = inputs.memory_need
+
       # Name the queue
       clear_screen()
       print "What name do you want in the queue? (Will truncate to 9 charicters)."
@@ -229,7 +234,20 @@ def get_arguments(inputs, debug=DEBUG):
       input = str(raw_input( 'DEFAULT = ' + run_script_string + ' :\n'))
       if (len(input) != 0): run_script_string = input
       
-      clear_screen()
+      clear_screen()   
+
+
+      inputs.job_name = job_name
+      inputs.queue_name = queue_name
+      inputs.queue_priority = queue_priority
+      inputs.run_script_string = run_script_string
+      inputs.out_of_hours_string = out_of_hours_string
+      inputs.wall_time = wall_time
+      inputs.memory_need = memory_need
+      return inputs
+
+
+
 
    # Only take the first 9 charicters from the job name
    job_name = job_name[:9]
