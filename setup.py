@@ -41,8 +41,8 @@ def create_default_settings_file():
     if os.path.isfile('monthly-run.cfg'):
         print "'monthly-run.cfg' already exists. Not creating a new one."
     else:
-        import json
-        import getpass
+        import csv
+        import csv
 
         cfg = {}
         
@@ -57,7 +57,7 @@ def create_default_settings_file():
         cfg_file = open('monthly-run.cfg', 'w')
 
 
-        cfg['help'] = [
+        file_help = [
 "Config file for monthly-run.py",
 "Edit the other json fields to change the default.",
 "This text just contains lots of information about the options.",
@@ -132,7 +132,10 @@ def create_default_settings_file():
         cfg["run_script_string"] = "yes"
 
 
-        json.dump( cfg, cfg_file, sort_keys=True, indent=4 )
+        cfg_file.write(file_help)
+        for item in cfg:
+
+            json.dump( cfg, cfg_file, sort_keys=True, indent=4 )
 
     return
         

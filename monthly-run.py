@@ -5,7 +5,7 @@
 # Splits up GEOSChem runs into smaller jobs, to be fairer on the queues.
 
 
-DEBUG = False
+DEBUG = True
 
 # Change the defaults here
 
@@ -140,27 +140,24 @@ def backup_the_input_file():
 
 def get_arguments(inputs, debug=DEBUG):
 
-
-
-
    # If there are no arguments then run the gui.
-   if len(sys.argv)>1:
+    if len(sys.argv)>1:
       for arg in sys.argv:
          if "monthly-run" in arg: continue
          if arg.startswith("--job-name="):
-            job_name = arg[11:]
+            inputs.job_name = (arg[11:].strip())[:9]
          elif arg.startswith("--queue-name="):
-            queue_name = arg[13:]
+            inputs.queue_name = arg[13:].strip()
          elif arg.startswith("--queue-priority="):
-            queue_priority = arg[17:]
+            inputs.queue_priority = arg[17:].strip()
          elif arg.startswith("--submit="):
-            run_script_string = arg[9:]
+            inputs.run_script_string = arg[9:].strip()
          elif arg.startswith("--out-of-hours="):
-            out_of_hours_string = arg[15:] 
+            inputs.out_of_hours_string = arg[15:].strip() 
          elif arg.startswith("--wall-time="):
-            wall_time = arg[12:] 
+            inputs.wall_time = arg[12:].strip()
          elif arg.startswith("--memory-need="):
-            wall_time = arg[14:] 
+            inputs.wall_time = arg[14:].strip() 
          elif arg.startswith("--help"):
             print "monthly-run.py\n"
 
@@ -177,11 +174,39 @@ def get_arguments(inputs, debug=DEBUG):
          else:
              print "Invalid argument "+ arg +"\nTry --help for more info.\n"
 
-   else:
+    else:
 
-    inputs = get_variables_from_cli(inputs)
+        inputs = get_variables_from_cli(inputs)
 
-    def get_variables_from_cli(inputs)
+
+
+
+
+    # Only take the first 9 charicters from the job name
+#    job_name = job_name[:9]
+ 
+ 
+ 
+#    if debug:
+#       print "job name         = " + str(job_name[:9])
+#       print "queue name       = " + str(queue_name)
+#       print "queue priority   = " + str(queue_priority )
+#       print "run script       = " + str(run_script_string)
+#       print "wall time        = " + str(wall_time)
+#       print "memory_need      = " + str(memory_need)
+#       print "out of hours     = " + str(out_of_hours_string)
+ 
+#    inputs.job_name = job_name
+#    inputs.queue_name = queue_name
+#    inputs.queue_priority = queue_priority
+#    inputs.run_script_string = run_script_string
+#    inputs.out_of_hours_string = out_of_hours_string
+#    inputs.wall_time = wall_time
+#    inputs.memory_need = memory_need
+ 
+    return inputs
+
+def get_variables_from_cli(inputs):
 
       job_name = inputs.job_name
       queue_priority = inputs.queue_priority
@@ -245,41 +270,6 @@ def get_arguments(inputs, debug=DEBUG):
       inputs.wall_time = wall_time
       inputs.memory_need = memory_need
       return inputs
-
-
-
-
-   # Only take the first 9 charicters from the job name
-   job_name = job_name[:9]
-
-
-   # Strip all whitespace
-   job_name           = job_name.strip()
-   queue_name         = queue_name.strip()
-   queue_priority     = queue_priority.strip()     
-   run_script_string  = run_script_string.strip()
-   wall_time          = wall_time.strip()
-   out_of_hours_string= out_of_hours_string.strip()
-   memory_need        = memory_need.strip()
-
-   if debug:
-      print "job name         = " + str(job_name[:9])
-      print "queue name       = " + str(queue_name)
-      print "queue priority   = " + str(queue_priority )
-      print "run script       = " + str(run_script_string)
-      print "wall time        = " + str(wall_time)
-      print "memory_need      = " + str(memory_need)
-      print "out of hours     = " + str(out_of_hours_string)
-
-   inputs.job_name = job_name
-   inputs.queue_name = queue_name
-   inputs.queue_priority = queue_priority
-   inputs.run_script_string = run_script_string
-   inputs.out_of_hours_string = out_of_hours_string
-   inputs.wall_time = wall_time
-   inputs.memory_need = memory_need
-
-   return inputs;
 
 def run_the_script(run_script):
    if run_script:
@@ -480,13 +470,14 @@ export out_of_hours=false
 
 #change to the directory that the command was issued from
 cd $PBS_O_WORKDIR
-echo running in $PBS_O_WORKDIR > log.log
-echo starting on $(date) >> log.log
+mkdir logs
+echo running in $PBS_O_WORKDIR > logs/log.log
+echo starting on $(date) >> logs/log.log
 
 # If the out of hours overide is not set in bash then set it here
 if [ -z $out_of_hours_overide ]; then
    export out_of_hours_overide=false
-   echo out_of_hours_overide is not set in bashrc >> log.log
+   echo out_of_hours_overide is not set in bashrc >> logs/log.log
 fi
 
 
@@ -496,8 +487,8 @@ if ! ( $out_of_hours_overide ); then
          job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
          echo $job_number
          echo qdel $job_numner > exit_geos.sh
-         echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>log.log
-         echo $(date)>>log.log
+         echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
+         echo $(date)>>logs/log.log
          exit 1
       fi
    fi
@@ -511,12 +502,13 @@ chmod 775 exit_geos.sh
 
 rm -f input.geos
 ln -s input_files/""" + str(start_time) +""".input.geos input.geos
-/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > """+ str(start_time) + """.geos.log
+/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > logs/"""+ str(start_time) + """.geos.log
 mv ctm.bpch """+str(start_time)+""".ctm.bpch
+mv HEMCO.log logs/"""+str(start_time)+""".HEMCO.log
 
 # Only submit the next month if GEOSCHEM completed correctly
-last_line = tail -n1 """ + str(start_time) + """.geos.log 
-complete_last_line = **************   E N D   O F   G E O S -- C H E M   **************
+last_line = "$(tail -n1 """ + str(start_time) + """.geos.log)"
+complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
 if [ $last_line = $complete_last_line]; then
    job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
