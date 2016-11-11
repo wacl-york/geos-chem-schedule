@@ -10,6 +10,9 @@ DEBUG = True
 # Change the defaults here
 
 class GET_INPUTS:
+    """
+    A dictionary containing all the variables needed
+    """
     def __init__(self):
         self.job_name           = "GEOS"    # Name of the job that appears in qstat
         self.queue_priority     = "0"       # Priority of the job
@@ -89,16 +92,33 @@ def check_inputs(inputs, debug=False):
     no          = ['no', 'NO', 'No', 'N', 'n'] 
  
  
-    assert (-1024 <= int(queue_priority) <= 1023), "Priority not within bounds of -1024 and 1023, recived " + str(queue_priority) 
- 
-    assert (queue_name in queue_names), "Unrecognised queue type: " + str(queue_name)
+    assert (-1024 <= int(queue_priority) <= 1023),(
+        "Priority not between -1024 and 1023. Recived {priority}"
+                ).format(priority=queue_priority) 
+     
+    assert (queue_name in queue_names), 
+        "Unrecognised queue type: {queue_name}"
+                ).format(queue_name=queue_name)
  
     
-    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), "Unrecognised option for out of hours. Try one of: " + str(yes) + str(no)+'. The command given was "' + run_script_string +'".'
+    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)),(
+    "Unrecognised option for out of hours.",
+    "Try one of: {yes} / {no}",
+    "The command given was {run_script_string}"
+            ).format(yes=yes, no=no, run_script_string=run_script_string)
  
-    assert (run_script_string in yes) or (run_script_string in no), "Unrecognised option for run the script on completion. Try one of: " + str(yes) + str(no) +'. The command given was "' + run_script_string + '".'
+    assert (run_script_string in yes) or (run_script_string in no), (
+            "Unrecognised option for run the script on completion.",
+            "Try one of: {yes} / {no}", 
+            "The command given was: {run_script_string}."
+                    ).format(yes=yes, no=no, 
+                            run_script_string=run_script_string)
  
-    assert (email_option in yes) or (email_option in no), "Email option is neither yes or no, please check the settings. Try one of: " + str(yes) + str(no)
+    assert (email_option in yes) or (email_option in no),(
+            "Email option is neither yes or no.",
+            "Please check the settings.",
+            "Try one of: {yes} / {no}"
+                    ).format(yes=yes, no=no)
  
  
     # Create the logicals
@@ -159,20 +179,24 @@ def get_arguments(inputs, debug=DEBUG):
          elif arg.startswith("--memory-need="):
             inputs.wall_time = arg[14:].strip() 
          elif arg.startswith("--help"):
-            print "monthly-run.py\n"
+            print ("""
+            monthly-run.py
 
-            print "For UI run without arguments\n"
-            print "Arguments are:\n"
-            print "--job-name=\n"
-            print "--queue-name=\n"
-            print "--queue-priority=\n"
-            print "--submit=\n"
-            print "--out-of-hours=\n"
-            print "--wall-time=\n"
-            print "--memory-need=\n"
-            print "e.g. to set the queue name to 'bob' write --queue-name=bob \n"
+            For UI run without arguments
+            Arguments are:
+            --job-name=
+            --queue-name=
+            --queue-priority=
+            --submit=
+            --out-of-hours=
+            --wall-time=
+            --memory-need=
+            e.g. to set the queue name to 'bob' write --queue-name=bob
+            """)
          else:
-             print "Invalid argument "+ arg +"\nTry --help for more info.\n"
+             print ("Invalid argument {arg}
+                     Try --help for more info."
+                     ).format(arg=arg)
 
     else:
 
@@ -181,28 +205,6 @@ def get_arguments(inputs, debug=DEBUG):
 
 
 
-
-    # Only take the first 9 charicters from the job name
-#    job_name = job_name[:9]
- 
- 
- 
-#    if debug:
-#       print "job name         = " + str(job_name[:9])
-#       print "queue name       = " + str(queue_name)
-#       print "queue priority   = " + str(queue_priority )
-#       print "run script       = " + str(run_script_string)
-#       print "wall time        = " + str(wall_time)
-#       print "memory_need      = " + str(memory_need)
-#       print "out of hours     = " + str(out_of_hours_string)
- 
-#    inputs.job_name = job_name
-#    inputs.queue_name = queue_name
-#    inputs.queue_priority = queue_priority
-#    inputs.run_script_string = run_script_string
-#    inputs.out_of_hours_string = out_of_hours_string
-#    inputs.wall_time = wall_time
-#    inputs.memory_need = memory_need
  
     return inputs
 
@@ -218,7 +220,8 @@ def get_variables_from_cli(inputs):
 
       # Name the queue
       clear_screen()
-      print "What name do you want in the queue? (Will truncate to 9 charicters)."
+      print ("What name do you want in the queue? 
+              (Will truncate to 9 charicters).")
       input = str(raw_input( 'DEFAULT = ' + job_name + ' :\n'))
       if (len(input) != 0): job_name = input
    
@@ -236,19 +239,24 @@ def get_variables_from_cli(inputs):
 
       # Check for out of hours run
       clear_screen()
-      print 'Do you only want to run jobs out of normal work hours (Monday to Friday 9am - 5pm)?'
+      print ('Do you only want to run jobs out of normal work hours
+            (Monday to Friday 9am - 5pm)?')
       input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
       if (len(input) != 0): out_of_hours_string = input
 
       # Set the walltime for the run   
       clear_screen()
-      print "How long does it take to run a month (HH:MM:SS)? \n Be generous, if the time is too short, your job will get deleted (Max = 48 hours)"
+      print ("How long does it take to run a month (HH:MM:SS)?
+              Be generous! if the time is too short your 
+              job will get deleted (Max = 48 hours)")
       input = str(raw_input( 'DEFAULT = ' + wall_time + ' :\n'))
       if (len(input) != 0): wall_time = input
 
       # Set the memory requirements for the run 
       clear_screen()
-      print "How much memory does your run need. Lower amounts may increase priority.\n Example 4gb, 200mb,200000kb."
+      print ("How much memory does your run need?
+            Lower amounts may increase priority. 
+            Example 4gb, 200mb, 200000kb.")
       input = str(raw_input( 'DEFAULT = ' + memory_need + ' :\n'))
       if (len(input) != 0): memory_need = input
 
@@ -286,15 +294,19 @@ def get_start_and_end_dates():
       if line.startswith("Start YYYYMMDD, HHMMSS  :"):
          start_date = line[26:32]
          # Confirm the run starts on the first of the month
-         if str(line[32:34]) != "01":
-            sys.exit( "The month does not start on the first, recived " + line[33:34] )
+         start_day=str(line[32:34])
+         if not start_day == "01":
+            sys.exit( "The month does not start on the first.
+                    recived {start_day}".format(start_day=start_day))
       if line.startswith("End   YYYYMMDD, HHMMSS  :"):
          end_date = line[26:32]
-         if str(line[32:34]) != "01":
-            sys.exit( "The month does not end on the first, recived " + line[33:34] )
+         end_day  = str(line[32:34])
+         if not end_day == "01":
+            sys.exit( "The month does not end on the first.
+                    Recived {end_day}".format(end_day=end_day))
 
-   print "Start date = " + str(start_date)
-   print "End date = " + str(end_date)
+   print "Start date = {start_date}".format(start_date=start_date)
+   print "End date = {end_date}".format(end_data=end_data)
    input_geos.close()
 
    return start_date, end_date;
@@ -345,7 +357,9 @@ def create_the_input_files(months, debug=False):
          continue
       
       if debug:
-         print "start time = " + str(start_time) +" End time =  " + str(end_time)
+         print ("start time = {start_time}
+                 End time = {end_time}"
+                ).format(start_time=start_time, end_time=end_time)
    
       input_geos = open( 'input.geos', 'r' )
       month_input_file_location = os.path.join(dir, (start_time+".input.geos"))
@@ -353,7 +367,8 @@ def create_the_input_files(months, debug=False):
       output_file = open(month_input_file_location, 'w')
       
       if debug:
-         print "writing to file " + month_input_file_location      
+         print ("writing to file {filename}"
+                 ).format(filename=month_input_file_location)
 
 
       for line in input_geos:
@@ -379,65 +394,99 @@ def create_the_input_files(months, debug=False):
 
 def create_the_queue_files(months, inputs, debug=DEBUG ):
 
-   queue_name = inputs.queue_name
-   job_name = inputs.job_name
-   queue_priority = inputs.queue_priority
-   out_of_hours = inputs.out_of_hours
-   wall_time = inputs.wall_time
-   email = inputs.email
-   email_address = inputs.email_address
-   email_setting = inputs.email_setting
-   memory_need   = inputs.memory_need
-# create folder queue files 
-   dir = os.path.dirname("queue_files/")
-   if not os.path.exists(dir):
-      os.makedirs(dir)     
-   pbs_output_dir = os.path.dirname("queue_output/")
-   if not os.path.exists(pbs_output_dir):
-      os.makedirs(pbs_output_dir)   
+    # Create local varialbes
+    queue_name = inputs.queue_name
+    job_name = inputs.job_name
+    queue_priority = inputs.queue_priority
+    out_of_hours = inputs.out_of_hours
+    wall_time = inputs.wall_time
+    email = inputs.email
+    email_address = inputs.email_address
+    email_setting = inputs.email_setting
+    memory_need   = inputs.memory_need
 
-# modify the input files to have the correct start months
-   for month in months:
-      end_time = month
-      if month == months[0]:
-         start_time = month
-         continue
-      queue_file_location = os.path.join(dir , (start_time + ".pbs"))
-      queue_file = open( queue_file_location, 'wb' )
-# set PBS variables
-      queue_file.write(
+    ## create folder queue files 
+    #dir = os.path.dirname("queue_files/")
+    #if not os.path.exists(dir):
+    #    os.makedirs(dir)     
+    #pbs_output_dir = os.path.dirname("queue_output/")
+    #if not os.path.exists(pbs_output_dir):
+    #    os.makedirs(pbs_output_dir)   
+
+    # modify the input files to have the correct start months
+    for month in months:
+        end_time = month
+        if month == months[0]:
+            start_time = month
+            continue
+
+
+
+    # Make the out of hours string if only running out of hours
+    if out_of_hours:
+         out_of_hours_string = (
+             """
+             if ! ( $out_of_hours_overide ); then                                            
+                if $out_of_hours ; then                                                      
+                   if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
+                      job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)   
+                      echo $job_number                                                       
+                      echo qdel $job_numner > exit_geos.sh                                   
+                      echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
+                      echo $(date)>>logs/log.log                                             
+                      exit 1                                                                 
+                   fi                                                                        
+                fi                                                                           
+             fi  
+             """
+         ).format(start_time=start_time)
+    else:
+        out_of_hours_string = "\n"
+
+    # Set up email if its the final run and email = True
+     if email:
+        if month = months[-1]:
+            email_string = (
+            """
+            #PBS -m {email_setting}
+            #PBS -M {email_address}
+            """
+            ).format(email_settings=email_settings,
+                    email_address=email_address)
+    else:
+        email_string = "\n"
+
+
+
+
+    queue_file_string = (
 """#!/bin/bash
 #PBS -j oe
 #PBS -V
-#PBS -q """ + str(queue_name) + """
+#PBS -q {queue_name}
 #     ncpus is number of hyperthreads - the number of physical core is half of that
 #
-#PBS -N """ + job_name + start_time + """
+#PBS -N {job_name}{start_time}
 #PBS -r n
-#PBS -l walltime=""" + wall_time + """
-#PBS -l mem=""" + memory_need + """
+#PBS -l walltime={wall_time}
+#PBS -l mem={memory_need}
 #PBS -l nodes=1:ppn=16
 #
-#PBS -o queue_output/""" + start_time + """.output
-#PBS -e queue_output/""" + start_time + """.error
+#PBS -o queue_output/{start_time}.output
+#PBS -e queue_output/{start_time}.error
 #
 # Set priority.
-#PBS -p """ + queue_priority + """
-""")
-
-      # if the final month and we want to email:
-      if month == months[-1]:
-         if email:
-            queue_file.write("""
-#PBS -m """ + email_setting + """
-#PBS -M """ + email_address + """
-""")
+#PBS -p {queue_priority}
 
 
+{email_string)
 
+# Make sure the required dirs exists
+mkdir -p queue_output
+mkdir -p logs
+mkdir -p queue_files
 
 # set enviroment variables      
-      queue_file.write("""
 #
 set -x
 #
@@ -454,88 +503,75 @@ export KMP_LIBRARY=turnaround
 export FORT_BUFFERED=true
 ulimit -s 200000000 
 
-""")
 
-      if out_of_hours:
-         queue_file.write("""
-export out_of_hours=true
-""")
-      else:
-         queue_file.write("""
-export out_of_hours=false
-""")
-
-      queue_file.write("""
-
+{out_of_hours_string}
 
 #change to the directory that the command was issued from
 cd $PBS_O_WORKDIR
-mkdir logs
 echo running in $PBS_O_WORKDIR > logs/log.log
 echo starting on $(date) >> logs/log.log
 
-# If the out of hours overide is not set in bash then set it here
-if [ -z $out_of_hours_overide ]; then
-   export out_of_hours_overide=false
-   echo out_of_hours_overide is not set in bashrc >> logs/log.log
-fi
-
-
-if ! ( $out_of_hours_overide ); then
-   if $out_of_hours ; then 
-      if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
-         job_number=$(qsub -a 1810 queue_files/""" + str(start_time)+""".pbs)
-         echo $job_number
-         echo qdel $job_numner > exit_geos.sh
-         echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
-         echo $(date)>>logs/log.log
-         exit 1
-      fi
-   fi
-fi
+{out_of_hours_string}
 
 # Create the exit file
 echo qdel $job_number > exit_geos.sh
 chmod 775 exit_geos.sh
 
-# Make sure using the spinup input file
 
 rm -f input.geos
-ln -s input_files/""" + str(start_time) +""".input.geos input.geos
-/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > logs/"""+ str(start_time) + """.geos.log
-mv ctm.bpch """+str(start_time)+""".ctm.bpch
-mv HEMCO.log logs/"""+str(start_time)+""".HEMCO.log
+ln -s input_files/{start_time}.input.geos input.geos
+/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > logs/{start_time}.geos.log
+
+# Prepend the files with the date
+mv ctm.bpch {start_time}.ctm.bpch
+mv HEMCO.log logs/{start_time}.HEMCO.log
 
 # Only submit the next month if GEOSCHEM completed correctly
-last_line = "$(tail -n1 """ + str(start_time) + """.geos.log)"
+last_line = "$(tail -n1 {start_time}.geos.log)"
 complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
 if [ $last_line = $complete_last_line]; then
-   job_number=$(qsub queue_files/"""+str(end_time)+""".pbs)
+   job_number=$(qsub queue_files/{end_time}.pbs)
    echo $job_number
 fi
 """
-   )
-   
-      # If this is the final month then run an extra command
-      if month == months[-1]:
-         run_completion_script(job_name)
+    )
 
-      queue_file.close()
-      start_time = month
-   return;
+    # Add all the variables to the string
+    queue_file_string = queue_file_string.format(
+        queue_name=queue_name,
+        job_name=job_name,
+        wall_time=wall_time,
+        memory_need=memory_need,
+        start_time=start_time,
+        queue_priority=queue_priority,
+        email_string=email_string,
+        out_of_hours_string=out_of_hours_string,
+        end_time=end_time
+        )
+
+    queue_file_location = os.path.join(dir , (start_time + ".pbs"))
+    queue_file = open( queue_file_location, 'wb' )
+    queue_file.write(queue_file_string)
+    # If this is the final month then run an extra command
+    if month == months[-1]:
+         run_completion_script(job_name)
+    queue_file.close()
+    start_time = month
+    return;
 
 
 def create_the_run_script(months):
-   run_script = open('run_geos.sh','w')
-   run_script.write(
-   """#!/bin/bash
-qsub queue_files/"""+str(months[0])+""".pbs
-""")
-   run_script.close()
-   return;
+    run_script = open('run_geos.sh','w')
+    run_script_string = ("""
+     #!/bin/bash
+     qsub queue_files/{month}.pbs
+     """).format(month=months[0])
+    run_script.write(run_script_string)
+    run_script.close()
+    return;
 
 
 
-
-main( debug=DEBUG )
+if __name__=='__main__':
+    main( debug=DEBUG )
