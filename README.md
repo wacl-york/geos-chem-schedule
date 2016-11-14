@@ -1,4 +1,4 @@
-monthly-run
+monthly_run
 ===========
 
 Creates a script that splits up a single geoschem input file into multiple jobs that can be sent to the queue.
@@ -8,37 +8,28 @@ WARNING: Make a backup of your input file incase the script brakes it.( It makes
 INSTALL
 
 To install download this repository with git clone either with MChem_tools or on its own.
-Once downloaded, navigate to the monthly run folder containing monthly-run.py and use the command below to make the script excecutable.
+Once downloaded, navigate to the monthly run folder containing monthly_run.py and run monthy_run.py --setup
 
-chmod +x monthly-run.py
-
-To make the program excecutable from any directory we need to create a symbolic link to your local ~/bin folder.
-
-ln -s montly-run.py $HOME/bin/monthly-run
-
-If your ~/bin folder does not exist then you can create one with the command below and then try again.
-
-mkdir $HOME/bin
-
-Now update your envoroment or log off and on to be able to run the command "monthly-run" from anywhere.
-
-source $HOME/.bashrc
+This will provide a command that you can copy and paste, which will allow you to use the command "monthly_run" from any folder
 
 
 
-
-
-
-The python script creates a bach submit script that you can run using:
+The python script creates a bash submit script that you can run using:
 BASH run_geos.sh
 
 The script has a UI to chose job name, queue name, priority, if you want to start month jobs outside of work hours, and if you want to have the script submit the job to the queue.
 
 The script can also take command line arguments. Type monthly_run.py --help for more info
-monthly_run.py --job-name=bob --queue-name=run --queue-priotiry=100 --out-of-hours=yes --submit=yes
+monthly_run.py --job-name=bob --step=month --queue-name=run --queue-priotiry=100 --out-of-hours=yes --submit=yes
 
 Explination:
-This will call the job bob in the queue. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
+This will call the job bob in the queue. It will split up the jobs into months. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
+
+
+2016-11-14
+Allow options for --step=week,day,month
+Allow setup via monthly_run.py --setup
+Code changes to make it more readable
 
 
 2015-04-01

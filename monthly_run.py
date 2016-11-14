@@ -43,8 +43,6 @@ class GET_INPUTS:
             default["email_setting"]        = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
             default["memory_need"]          = "10gb"    # How much memory do you need? 
 
-            print default
-
             settings_file = open(user_settings_file, 'w')
             json.dump(default, settings_file, sort_keys=True, indent=4)
             settings_file.close()
@@ -52,12 +50,7 @@ class GET_INPUTS:
         settings_file = open(user_settings_file, 'r')
         options = json.load(settings_file)
 
-
-        print options
-
         self.__dict__.update(options)
-
-        print self.__dict__
 
         return 
 
@@ -210,6 +203,34 @@ def backup_the_input_file():
 
     return;
 
+def setup_script():
+    """
+    Creates a symbolic link allowing the use to run "monthly_run" from any folder"
+    """
+
+    print "\n"
+    print "Monthly run setup complete. Change your default settings in settings.json"
+    print "To run the script from anywhere with the monthly_run command,"
+    print "copy the following code into your terminal. \n"
+
+    script_location = os.path.realpath(__file__)
+    # make sure the script is excecutable
+    print "chmod 755 {script}".format(script=script_location)
+    # Make sure there is a ~/bin file
+    print "mkdir -p $HOME/bin"
+    # Create a symlink from the file to the bin
+    print "ln -s {script} $HOME/bin/monthly_run".format(script=script_location)
+    # Make sure the ~/bin is in the bashrc
+    #with open('$HOME/.bashrc','a') as bashrc:
+    #        bashrc.write('## Written by monthly_run')
+    #        bashrc.write('export PATH=$PATH:$HOME/bin')
+    print 'echo "## Written by monthly_run" >> $HOME/.bashrc'
+    print 'echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc'
+    # source the bashrc
+    print "source $HOME/.bashrc"
+    print 
+    sys.exit()
+
 
 def get_arguments(inputs, debug=DEBUG):
     """
@@ -220,7 +241,9 @@ def get_arguments(inputs, debug=DEBUG):
     if len(sys.argv)>1:
       for arg in sys.argv:
          if "monthly-run" in arg: continue
-         if arg.startswith("--job-name="):
+         if arg.startswith("--setup"):
+            setup_script()
+         elif arg.startswith("--job-name="):
             inputs.job_name = (arg[11:].strip())[:9]
          elif arg.startswith("--step="):
             inputs.step = arg[7:].strip()
