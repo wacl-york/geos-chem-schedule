@@ -427,7 +427,7 @@ def list_of_times_to_run( start_time, end_time, inputs, debug=False):
     elif step=="week":
         time_delta = relativedelta(weeks=1)
     elif step=="day":
-        time_delta = relativedelta(dayss=1)
+        time_delta = relativedelta(days=1)
 
 
     start_datetime = datetime.datetime.strptime(start_time, "%Y%m%d")
@@ -595,7 +595,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
 #PBS -q {queue_name}
 #     ncpus is number of hyperthreads - the number of physical core is half of that
 #
-#PBS -N {job_name}{start_time}
+#PBS -N {job_name}
 #PBS -r n
 #PBS -l walltime={wall_time}
 #PBS -l mem={memory_need}
@@ -609,6 +609,9 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
 
 
 {email_string}
+
+
+cd $PBS_O_WORKDIR
 
 # Make sure the required dirs exists
 mkdir -p queue_output
@@ -636,7 +639,6 @@ ulimit -s 200000000
 {out_of_hours_string}
 
 #change to the directory that the command was issued from
-cd $PBS_O_WORKDIR
 echo running in $PBS_O_WORKDIR > logs/log.log
 echo starting on $(date) >> logs/log.log
 
@@ -667,7 +669,7 @@ fi
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
-            job_name=job_name,
+            job_name=(job_name + start_time)[:14], # job name can only be 15 charicters
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
