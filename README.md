@@ -13,11 +13,12 @@ Once downloaded, navigate to the monthly_run folder containing monthly_run.py an
 
 1) Download the script and run the setup with the following commands.
 
+```bash
 mkdir -p $HOME/src
 cd $HOME/src
 git clone https://github.com/BenNewsome/monthly-run.git
 python monthy_run.py --setup
-
+```
 2)
 Copy and paste the command provided into the terminal, which will allow you to use the command "monthly_run" from any folder
 
@@ -41,13 +42,17 @@ USE:
 Go to your geoschem run directory and confirm your input.geos file is correct.
 type the following command if you have followed up the setup:
 
+```bash
 monthly_run
+```
 
 Follow the UI instructions on screen.
 
 The final option allows you to run the script imedietly, or if you want to run the command later, it creates a file run_geos.sh. This file can be executed by typing:
 
+```bash
 bash run_geos.sh
+```
 
 The script has a UI to chose job name, queue name, priority, if you want to start month jobs outside of work hours, and if you want to have the script submit the job to the queue.
 
@@ -55,8 +60,9 @@ The script can also take command line arguments. Type monthly_run.py --help for 
 This can be useful if you have lots of simulations you want to send off via a script.
 
 example:
+```bash
 monthly_run.py --job-name=bob --step=month --queue-name=run --queue-priotiry=100 --out-of-hours=yes --submit=yes
-
+```
 Explination:
 This will call the job bob in the queue. It will split up the jobs into months. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
 
