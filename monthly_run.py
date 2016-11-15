@@ -693,8 +693,8 @@ fi
 def create_the_run_script(months):
     run_script = open('run_geos.sh','w')
     run_script_string = ("""
-     #!/bin/bash
-     qsub queue_files/{month}.pbs
+#!/bin/bash
+qsub queue_files/{month}.pbs
      """).format(month=months[0])
     run_script.write(run_script_string)
     run_script.close()
