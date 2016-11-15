@@ -2,29 +2,68 @@ monthly_run
 ===========
 
 Creates a script that splits up a single geoschem input file into multiple jobs that can be sent to the queue.
+This allows lots of smaller jobs to be ran so that they can fit into different queues, and are also fairer on the system.
 
-WARNING: Make a backup of your input file incase the script brakes it.( It makes a backup to input.geos.orig, so dont call the backup this)
 
 INSTALL
+==================================================
 
-To install download this repository with git clone either with MChem_tools or on its own.
-Once downloaded, navigate to the monthly run folder containing monthly_run.py and run monthy_run.py --setup
+To install download this repository with git clone. Recomended location would be $HOME/src/monthly_run
+Once downloaded, navigate to the monthly_run folder containing monthly_run.py and run:
 
-This will provide a command that you can copy and paste, which will allow you to use the command "monthly_run" from any folder
+1) Download the script and run the setup with the following commands.
+
+mkdir -p $HOME/src
+cd $HOME/src
+git clone https://github.com/BenNewsome/monthly-run.git
+python monthy_run.py --setup
+
+2)
+Copy and paste the command provided into the terminal, which will allow you to use the command "monthly_run" from any folder
+
+3)
+Edit your settings.json file for options like default memory requirements, default run queue, default job name, and add your email address.
 
 
+WARNINGS:
+==================================================
 
-The python script creates a bash submit script that you can run using:
-BASH run_geos.sh
+Make a backup of your input file incase the script brakes it.( It makes a backup to input.geos.orig, so dont call the backup this)
+
+The script forces saving the CSPEC to on.
+
+The script forces 3 for the end of simulation date and replaces all other days with a 0. If you want every day to run with a 3 then use --step=daily.
+
+
+USE:
+==================================================
+
+Go to your geoschem run directory and confirm your input.geos file is correct.
+type the following command if you have followed up the setup:
+
+monthly_run
+
+Follow the UI instructions on screen.
+
+The final option allows you to run the script imedietly, or if you want to run the command later, it creates a file run_geos.sh. This file can be executed by typing:
+
+bash run_geos.sh
 
 The script has a UI to chose job name, queue name, priority, if you want to start month jobs outside of work hours, and if you want to have the script submit the job to the queue.
 
-The script can also take command line arguments. Type monthly_run.py --help for more info
+The script can also take command line arguments. Type monthly_run.py --help for more info.
+This can be useful if you have lots of simulations you want to send off via a script.
+
+example:
 monthly_run.py --job-name=bob --step=month --queue-name=run --queue-priotiry=100 --out-of-hours=yes --submit=yes
 
 Explination:
 This will call the job bob in the queue. It will split up the jobs into months. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
 
+
+
+HISTORY:
+==================================================
 
 2016-11-14
 Allow options for --step=week,day,month
@@ -49,9 +88,6 @@ Option to chose priority of the jobs.
 Now only sends one job to the queue at a time, reducing mess in qstat. Now calls then next month upon completion of the current month.
 
 
-TO-DO
-
-Allow splitting into 6 months or other multiples instead of just 1 month.
 
 
 
