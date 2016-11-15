@@ -16,9 +16,19 @@ Once downloaded, navigate to the monthly_run folder containing monthly_run.py an
 ```bash
 mkdir -p $HOME/src
 cd $HOME/src
-git clone https://github.com/BenNewsome/monthly-run.git
-python monthy_run.py --setup
+git clone https://github.com/wacl-york/monthly_run.git
+python monthly_run/monthy_run.py --setup
 ```
+
+OR
+
+If you have AC_tools downloaded, Go to your AC_tools dir and do the following commands.
+
+```bash
+git submodule update --recursive --remote
+python Scripts/monthly_run/monthly_run.py --setup
+```
+
 2)
 Copy and paste the command provided into the terminal, which will allow you to use the command "monthly_run" from any folder
 
