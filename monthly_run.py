@@ -39,7 +39,7 @@ class GET_INPUTS:
             default["out_of_hours_string"]  = "no"      # Do you only want to run evenings and weekends?
             default["wall_time"]            = "2:00:00"# How long will a month take at most?
             default["email_option"]         = "yes"     # Do you want an email sending upon completion?
-            default["email_address"]        = "no-reply@york.ac.uk"
+            default["email_address"]        = "example@example.com"
             default["email_setting"]        = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
             default["memory_need"]          = "10gb"    # How much memory do you need? 
 
