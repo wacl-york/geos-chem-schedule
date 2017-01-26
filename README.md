@@ -17,7 +17,7 @@ Once downloaded, navigate to the monthly_run folder containing monthly_run.py an
 mkdir -p $HOME/src
 cd $HOME/src
 git clone https://github.com/wacl-york/monthly_run.git
-python monthly_run/monthy_run.py --setup
+python monthly_run/monthly_run.py --setup
 ```
 
 OR
