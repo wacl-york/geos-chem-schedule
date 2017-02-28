@@ -1,9 +1,17 @@
 #!/usr/local/anaconda/bin/python
+"""
+A script to split up long GEOS_Chem jobs on Earth0 into shorter runs.
+This allows fitting in smaller queues and fairer access.
+
+The jobs can call the next job in the sequence meaning you can submit in the
+same way.
+
+There are also options that you can either pass as arguments or run a UI
+if no arguments are passed.
+see "$ monthly_run.py --help" for more information.
+"""
 
 # file name = monthly_run.py
-
-# Splits up GEOSChem runs into smaller jobs, to be fairer on the queues.
-
 
 #############
 # If you want to edit the default settings, then after the first run,
@@ -11,16 +19,23 @@
 #############
 
 
+from __future__ import absolute_import
+import subprocess
+import json
+import os
+import sys
+import shutil
+import datetime
+import calendar
+from dateutil.relativedelta import relativedelta
+
 
 DEBUG = True
-
-
 class GET_INPUTS:
     """
     A dictionary containing all the variables needed
     """
     def __init__(self):
-        import json
 
         script_location = os.path.realpath(__file__)
         script_dir = os.path.dirname(script_location)
@@ -52,27 +67,20 @@ class GET_INPUTS:
 
         self.__dict__.update(options)
 
-        return 
+        return
 
 
-# If you have a script you would like to run upon completion, such as analyse some results, or turn results into a different format, then insert it in the run_completion_script function.
-def run_completion_script(job_name):
-    import subprocess
-    #   subprocess.call( 'A script' )
+def run_completion_script():
+    """
+    Run a script when the final month finishes. This could be a cleanup script
+    or a post processing script.
+    """
     return
 
 
 # Nothing below here should need changing, but feel free to look.
 
 
-import os
-import sys
-import math
-import shutil
-import subprocess
-import datetime
-import dateutil
-from dateutil.relativedelta import relativedelta
 
 def main( debug=DEBUG ):
 
@@ -447,7 +455,6 @@ def update_output_line( line, end_time ):
     """
     Make sure we have a 3 in the end date in input.geos output menu
     """
-    import calendar
 
 #    _current_month_name = end_time.strf(time("%B"))
     _current_month_name = calendar.month_name[int(end_time[4:6])]
@@ -618,7 +625,7 @@ mkdir -p queue_output
 mkdir -p logs
 mkdir -p queue_files
 
-# set enviroment variables      
+# set enviroment variables
 #
 set -x
 #
@@ -633,7 +640,7 @@ export MPSTZ=1024M
 export KMP_STACKSIZE=100000000
 export KMP_LIBRARY=turnaround
 export FORT_BUFFERED=true
-ulimit -s 200000000 
+ulimit -s 200000000
 
 
 {out_of_hours_string}
@@ -679,27 +686,33 @@ fi
             end_time=end_time
             )
 
-        queue_file_location = os.path.join(dir , (start_time + ".pbs"))
-        queue_file = open( queue_file_location, 'wb' )
+        queue_file_location = os.path.join(dir, (start_time + ".pbs"))
+        queue_file = open(queue_file_location, 'wb')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command
         if time == times[-1]:
-             run_completion_script(job_name)
+            run_completion_script()
         queue_file.close()
         start_time = time
-    return;
+    return
 
 
 def create_the_run_script(months):
-    run_script = open('run_geos.sh','w')
+    """
+    Create the script that can set off the run jobs for rerunning or manual
+    submission.
+    Input: months
+    Output: 'run_geos.sh'
+    """
+    run_script = open('run_geos.sh', 'w')
     run_script_string = ("""
 #!/bin/bash
 qsub queue_files/{month}.pbs
      """).format(month=months[0])
     run_script.write(run_script_string)
     run_script.close()
-    return;
+    return
 
 
-if __name__=='__main__':
-    main( debug=DEBUG )
+if __name__ == '__main__':
+    main(debug=DEBUG)
