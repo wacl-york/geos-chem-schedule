@@ -20,6 +20,7 @@ see "$ monthly_run.py --help" for more information.
 
 
 from __future__ import absolute_import
+from __future__ import print_function
 import subprocess
 import json
 import os
@@ -28,46 +29,115 @@ import shutil
 import datetime
 import calendar
 from dateutil.relativedelta import relativedelta
+import pytest
 
 
 DEBUG = True
 class GET_INPUTS:
     """
-    A dictionary containing all the variables needed
+    A class containing all the variables needed
+    Attributes:
+        attribute:              default         - description
+        job_name:               GEOS            - Name of the job to appear in qstat
+        step:                   month           - Time of the split chunks
+        queue_priority:         0               - Priority of the job (-1024 to 1023)
+        queue_name:             run             - Name of the queue to submit too
+        run_script_string:      yes             - Do you want to run the script immidiatley
+        out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
+        wall_time:              "2:00:00"       - How long will a chunk take (overestimate)
+        email_option:           "yes"           - Do you want an email upon completion?
+        email_address:          "example@example.com" - Address to send emails to
+        email_setting:          "e"             - Email on exit? google PBS email for more
+        memory_need:            "10gb"          - Maximum memory you will need"
     """
+
     def __init__(self):
 
         script_location = os.path.realpath(__file__)
         script_dir = os.path.dirname(script_location)
         user_settings_file = os.path.join(script_dir, 'settings.json')
 
-        if not os.path.exists(user_settings_file):
+        # set defaults
+        self.job_name = "GEOS"
+        self.step = "month"
+        self.queue_priority = "0"
+        self.queue_name = "run"
+        self.run_script_string = "yes"
+        self.out_of_hours_string = "no"
+        self.wall_time = "2:00:00"
+        self.email_option = "yes"
+        self.email_address = "example@example.com"
+        self.email_setting = "e"
+        self.memory_need = "10gb"
+        self.run_script = False
+        self.out_of_hours = False
+        self.email = False
 
-            default = {}
 
+        if os.path.exists(user_settings_file):
 
-            default["job_name"]             = "GEOS"    # Name of the job that appears in qstat
-            default["step"]                 = "month"    # Name of the job that appears in qstat
-            default["queue_priority"]       = "0"       # Priority of the job
-            default["queue_name"]           = "run"     # Name of the queue to submit too
-            default["run_script_string"]    = "yes"     # Do you want to run the script streight away?
-            default["out_of_hours_string"]  = "no"      # Do you only want to run evenings and weekends?
-            default["wall_time"]            = "2:00:00"# How long will a month take at most?
-            default["email_option"]         = "yes"     # Do you want an email sending upon completion?
-            default["email_address"]        = "example@example.com"
-            default["email_setting"]        = "e"       # Do you want an email on exit(e) or othe settings - see PBS email.
-            default["memory_need"]          = "10gb"    # How much memory do you need? 
+            settings_file = open(user_settings_file, 'r')
+            options = json.load(settings_file)
+        else:
+
+            default = self.variables()
 
             settings_file = open(user_settings_file, 'w')
             json.dump(default, settings_file, sort_keys=True, indent=4)
             settings_file.close()
 
-        settings_file = open(user_settings_file, 'r')
-        options = json.load(settings_file)
+            options = default
 
         self.__dict__.update(options)
-
         return
+
+    def __str__(self):
+        """
+        Set the method to print the class
+        """
+        attrs = str(self.__dict__)
+        return attrs
+
+    def variables(self):
+        """
+        Return a list of class variables as a dictionary.
+        """
+        def built_in_function(key):
+            """
+            Check if a key is a built in class function or variable
+            """
+            return bool(key.startswith('__') and not callable(key))
+        _vars = {key:val for key, vau in self.__dict__.items() if not built_in_function(key)}
+        return _vars
+
+    def __setitem__(self, name, value):
+        self.__dict__[name] = value
+
+    def __getitem__(self, name):
+        """Allow use like a dictionary"""
+        return self.__dict__[name]
+
+
+
+
+
+
+
+
+def test_get_default_inputs():
+    """
+    Test get_default_inputs().
+    """
+#    inputs = get_default_inputs()
+    inputs = GET_INPUTS()
+    assert inputs.job_name == "GEOS"
+    assert inputs.step == "month"
+    assert inputs.queue_priority == "0"
+    assert inputs.run_script_string == "yes"
+    return
+
+
+
 
 
 def run_completion_script():
@@ -87,42 +157,43 @@ def main( debug=DEBUG ):
 
     # Get the default inputs as a class
     inputs = GET_INPUTS()
- 
+
     # Get the arguments from the comand line or UI.
     inputs = get_arguments( inputs, debug=DEBUG)
  
     # Check all the inputs are valid.
     inputs = check_inputs(inputs, debug=DEBUG)
- 
+
     # Check the start and end dates are compatible with the script.
     start_date, end_date = get_start_and_end_dates()
- 
+
     # Calculate the list of months.
     times = list_of_times_to_run( start_date, end_date, inputs )
- 
+
     # Make a backup of the input.geos file.
     backup_the_input_file()
-    
+
     # Create the individual time input files.
     create_the_input_files(times)
-   
+
     # Create the queue files.
-    create_the_queue_files(times, inputs, debug=DEBUG )
- 
+    create_the_queue_files(times, inputs, debug=DEBUG)
+
     # Create the run script.
     create_the_run_script(times)
- 
+
     # Send the script to the queue if wanted.
     run_the_script(inputs.run_script)
- 
+
     return;
 
 def check_inputs(inputs, debug=False):
     """
     Make sure all the inputs make sense
+    Input: inputs(dictionary)
+    Output: inputs(dictionary)
     """
 
-    job_name = inputs.job_name
     queue_priority = inputs.queue_priority
     queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
@@ -130,72 +201,75 @@ def check_inputs(inputs, debug=False):
     email_option = inputs.email_option
     wall_time = inputs.wall_time
     step = inputs.step
-    
+
     queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
-    yes         = ['yes', 'YES', 'Yes', 'Y', 'y'] 
-    no          = ['no', 'NO', 'No', 'N', 'n'] 
+    yes = ['yes', 'YES', 'Yes', 'Y', 'y']
+    no = ['no', 'NO', 'No', 'N', 'n']
     steps = ["month", "week", "day"]
 
-    assert (step in steps), (
-            "Unrecognised step size.",
-            "try one of {steps}",
-            ).format( steps=steps )
+    assert (step in steps), str(
+        "Unrecognised step size.",
+        "try one of {steps}",
+        ).format(steps=steps)
 
- 
- 
-    assert (-1024 <= int(queue_priority) <= 1023),(
+    assert (-1024 <= int(queue_priority) <= 1023), str(
         "Priority not between -1024 and 1023. Recived {priority}"
-                ).format(priority=queue_priority) 
-     
-    assert (queue_name in queue_names),(
+        ).format(priority=queue_priority)
+
+    assert (queue_name in queue_names), str(
         "Unrecognised queue type: {queue_name}"
-                ).format(queue_name=queue_name)
- 
-    
-    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)),(
-    "Unrecognised option for out of hours.",
-    "Try one of: {yes} / {no}",
-    "The command given was {run_script_string}"
-            ).format(yes=yes, no=no, run_script_string=run_script_string)
- 
-    assert (run_script_string in yes) or (run_script_string in no), (
-            "Unrecognised option for run the script on completion.",
-            "Try one of: {yes} / {no}", 
-            "The command given was: {run_script_string}."
-                    ).format(yes=yes, no=no, 
-                            run_script_string=run_script_string)
- 
-    assert (email_option in yes) or (email_option in no),(
-            "Email option is neither yes or no.",
-            "Please check the settings.",
-            "Try one of: {yes} / {no}"
-                    ).format(yes=yes, no=no)
- 
- 
+        ).format(queue_name=queue_name)
+
+    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), str(
+        "Unrecognised option for out of hours.",
+        "Try one of: {yes} / {no}",
+        "The command given was {run_script_string}"
+        ).format(yes=yes, no=no, run_script_string=run_script_string)
+
+    assert (run_script_string in yes) or (run_script_string in no), str(
+        "Unrecognised option for run the script on completion.",
+        "Try one of: {yes} / {no}",
+        "The command given was: {run_script_string}."
+        ).format(yes=yes, no=no,
+                 run_script_string=run_script_string)
+
+    assert (email_option in yes) or (email_option in no), str(
+        "Email option is neither yes or no.",
+        "Please check the settings.",
+        "Try one of: {yes} / {no}"
+        ).format(yes=yes, no=no)
+
     # Create the logicals
-    if (run_script_string in yes):
-       run_script = True
-    elif (run_script_string in no):
-       run_script = False
- 
-    if (out_of_hours_string in yes):
-       out_of_hours = True
-    elif (out_of_hours_string in no):
-       out_of_hours = False
- 
-    if (email_option in yes):
-       email = True
-    elif (email_option in no):
-       email = False
-    
- 
-    if debug: print str(out_of_hours)
- 
-    inputs.run_script = run_script
-    inputs.out_of_hours = out_of_hours
-    inputs.email = email
- 
-    return inputs;
+    if run_script_string in yes:
+        inputs["run_script"] = True
+    elif run_script_string in no:
+        inputs["run_script"] = False
+
+    if out_of_hours_string in yes:
+        inputs["out_of_hours"] = True
+    elif out_of_hours_string in no:
+        inputs["out_of_hours"] = False
+
+    if email_option in yes:
+        inputs["email"] = True
+    elif email_option in no:
+        inputs["email"] = False
+
+    return inputs
+
+def test_check_inputs_steps():
+    """
+    Test check_inputs() steps
+    """
+    inputs = GET_INPUTS()
+    for step in ["month", "week", "day"]:
+        inputs.step = step
+        check_inputs(inputs)
+    with pytest.raises(Exception):
+        inputs.step = "bob"
+        check_inputs(inputs)
+    return
+
 
 
 def backup_the_input_file():
@@ -216,27 +290,27 @@ def setup_script():
     Creates a symbolic link allowing the use to run "monthly_run" from any folder"
     """
 
-    print "\n"
-    print "Monthly run setup complete. Change your default settings in settings.json"
-    print "To run the script from anywhere with the monthly_run command,"
-    print "copy the following code into your terminal. \n"
+    print("\n",
+    "Monthly run setup complete. Change your default settings in settings.json\n",
+    "To run the script from anywhere with the monthly_run command,",
+    "copy the following code into your terminal. \n")
 
     script_location = os.path.realpath(__file__)
     # make sure the script is excecutable
-    print "chmod 755 {script}".format(script=script_location)
+    print( "chmod 755 {script}".format(script=script_location) )
     # Make sure there is a ~/bin file
-    print "mkdir -p $HOME/bin"
+    print( "mkdir -p $HOME/bin" )
     # Create a symlink from the file to the bin
-    print "ln -s {script} $HOME/bin/monthly_run".format(script=script_location)
+    print( "ln -s {script} $HOME/bin/monthly_run".format(script=script_location) )
     # Make sure the ~/bin is in the bashrc
     #with open('$HOME/.bashrc','a') as bashrc:
     #        bashrc.write('## Written by monthly_run')
     #        bashrc.write('export PATH=$PATH:$HOME/bin')
-    print 'echo "## Written by monthly_run" >> $HOME/.bashrc'
-    print 'echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc'
+    print( 'echo "## Written by monthly_run" >> $HOME/.bashrc' )
+    print( 'echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc' )
     # source the bashrc
-    print "source $HOME/.bashrc"
-    print 
+    print( "source $HOME/.bashrc" )
+    print( "\n" )
     sys.exit()
 
 
@@ -268,7 +342,7 @@ def get_arguments(inputs, debug=DEBUG):
          elif arg.startswith("--memory-need="):
             inputs.wall_time = arg[14:].strip() 
          elif arg.startswith("--help"):
-            print ("""
+            print("""
             monthly-run.py
 
             For UI run without arguments
@@ -307,57 +381,57 @@ def get_variables_from_cli(inputs):
 
     # Name the queue
     clear_screen()
-    print 'What name do you want in the queue?',
-    print '(Will truncate to 9 charicters).'
+    print( 'What name do you want in the queue?\n', \
+    '(Will truncate to 9 charicters).\n')
     input = str(raw_input( 'DEFAULT = ' + job_name + ' :\n'))
     if (len(input) != 0): job_name = input
 
     # Specify the step size
     clear_screen()
-    print 'What time step size do you want?',
-    print '(month recomended for 4x5, 2x25. week or day available).'
+    print( 'What time step size do you want?\n', \
+        '(month recomended for 4x5, 2x25. week or day available).\n')
     input = str(raw_input( 'DEFAULT = ' + step + ' :\n'))
     if (len(input) != 0): step = input
 
     # Give the job a priority
     clear_screen()
-    print "What queue priority do you want? (Between -1024 and 1023)."
+    print("What queue priority do you want? (Between -1024 and 1023).\n")
     input = str(raw_input( 'DEFAULT = ' + queue_priority + ' :\n'))
     if (len(input) != 0): queue_priority = input
 
     # Choose the queue
     clear_screen()
-    print "What queue do you want to go in?" 
+    print( "What queue do you want to go in?\n" )
     input = str(raw_input( 'DEFAULT = ' + queue_name + ' :\n'))
     if (len(input) != 0): queue_name = input
 
     # Check for out of hours run
     clear_screen()
-    print "Do you only want to run jobs out of normal work hours?"
-    print "(Monday to Friday 9am - 5pm)?"
+    print( "Do you only want to run jobs out of normal work hours?\n" \
+        "(Monday to Friday 9am - 5pm)?\n")
     input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
     if (len(input) != 0): out_of_hours_string = input
 
     # Set the walltime for the run   
     clear_screen()
-    print "How long does it take to run a month (HH:MM:SS)?"
-    print "Be generous! if the time is too short your"
-    print "job will get deleted (Max = 48 hours)"
+    print( "How long does it take to run a month (HH:MM:SS)?\n",
+        "Be generous! if the time is too short your\n"
+        "job will get deleted (Max = 48 hours)\n")
     input = str(raw_input( 'DEFAULT = ' + wall_time + ' :\n'))
     if (len(input) != 0): wall_time = input
 
     # Set the memory requirements for the run 
     clear_screen()
-    print "How much memory does your run need?"
-    print "Lower amounts may increase priority."
-    print "Example 4gb, 200mb, 200000kb."
+    print( "How much memory does your run need?\n"
+        "Lower amounts may increase priority.\n"
+        "Example 4gb, 200mb, 200000kb.\n" )
     input = str(raw_input( 'DEFAULT = ' + memory_need + ' :\n'))
     if (len(input) != 0): memory_need = input
 
 
     # Run script check
     clear_screen()
-    print "Do you want to run the script now?"
+    print( "Do you want to run the script now?\n")
     input = str(raw_input( 'DEFAULT = ' + run_script_string + ' :\n'))
     if (len(input) != 0): run_script_string = input
 
@@ -375,46 +449,43 @@ def get_variables_from_cli(inputs):
     return inputs
 
 def run_the_script(run_script):
-   if run_script:
-      subprocess.call(["bash", "run_geos.sh"])
-   return;
+    """
+    Call the run script with a subprocess command.
+    """
+    if run_script:
+        subprocess.call(["bash", "run_geos.sh"])
+    return
 
 def clear_screen():
-   os.system('cls' if os.name == 'nt' else 'clear')
-   return
+    """
+    Clear the screen of the terminal for the UI.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
+    return
 
 def get_start_and_end_dates():
     """
     Get the start date and end date from input.geos
     """
-    input_geos = open( 'input.geos', 'r' )
+    input_geos = open('input.geos', 'r')
     for line in input_geos:
-       if line.startswith("Start YYYYMMDD, HHMMSS  :"):
-          start_date = line[26:34]
-          # Confirm the run starts on the first of the month
-          #start_day=str(line[32:34])
-          #if not start_day == "01":
-          #   sys.exit( """The month does not start on the first.
-          #           recived {start_day}""".format(start_day=start_day))
-       if line.startswith("End   YYYYMMDD, HHMMSS  :"):
-          end_date = line[26:34]
-#          end_day  = str(line[32:34])
-          #if not end_day == "01":
-          #   sys.exit("""The month does not end on the first.
-          #           Recived {end_day}""".format(end_day=end_day))
+        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+            start_date = line[26:34]
+        if line.startswith("End   YYYYMMDD, HHMMSS  :"):
+            end_date = line[26:34]
 
-    print "Start time = {start_date}".format(start_date=start_date)
-    print "End time = {end_date}".format(end_date=end_date)
+    print("Start time = {start_date}".format(start_date=start_date))
+    print("End time = {end_date}".format(end_date=end_date))
     input_geos.close()
 
-    return start_date, end_date;
+    return start_date, end_date
 
-def list_of_times_to_run( start_time, end_time, inputs, debug=False):
+def list_of_times_to_run(start_time, end_time, inputs):
     """
     Create a list of start times and the end time of the run
     """
 
-    step=inputs.step
+    step = inputs.step
 
     ###### TO-DO
     ######
@@ -427,14 +498,17 @@ def list_of_times_to_run( start_time, end_time, inputs, debug=False):
 
 
     def datetime_2_YYYYMMDD(_my_datetime):
+        """
+        Get the geoschem YYYYMMDD from a datetime object.
+        """
         return _my_datetime.strftime("%Y%m%d")
 
 
-    if step=="month":
+    if step == "month":
         time_delta = relativedelta(months=1)
-    elif step=="week":
+    elif step == "week":
         time_delta = relativedelta(weeks=1)
-    elif step=="day":
+    elif step == "day":
         time_delta = relativedelta(days=1)
 
 
@@ -443,15 +517,15 @@ def list_of_times_to_run( start_time, end_time, inputs, debug=False):
 
     _timestamp = (start_datetime)
 
-    times = [ datetime_2_YYYYMMDD(_timestamp) ]
+    times = [datetime_2_YYYYMMDD(_timestamp)]
     while _timestamp < end_datetime:
         _timestamp = _timestamp + time_delta
-        times.append( datetime_2_YYYYMMDD(_timestamp) )
+        times.append(datetime_2_YYYYMMDD(_timestamp))
 
 
-    return times;
+    return times
 
-def update_output_line( line, end_time ):
+def update_output_line(line, end_time):
     """
     Make sure we have a 3 in the end date in input.geos output menu
     """
@@ -466,7 +540,7 @@ def update_output_line( line, end_time ):
 
     _line_start = line[:_position_in_string-1]
     _line_end = line[_position_in_string:]
-    
+
     if line[20:23] == _current_month_name:
         line = _line_start +'3' + _line_end
     else:
@@ -476,10 +550,17 @@ def update_output_line( line, end_time ):
 
 
 def create_the_input_files(times, debug=False):
-    # create folder input files 
-    dir = os.path.dirname("input_files/")
-    if not os.path.exists(dir):
-        os.makedirs(dir)     
+    """
+    Create the input files for the run
+    INPUT:
+        times - list of string times in the format YYYYMMDD
+    Output:
+        None
+    """
+    # create folder input files
+    _dir = os.path.dirname("input_files/")
+    if not os.path.exists(_dir):
+        os.makedirs(_dir)
 
 
     # modify the input files to have the correct start times
@@ -491,16 +572,16 @@ def create_the_input_files(times, debug=False):
             continue
       
         if debug:
-             print ("""start time = {start_time}
+             print("""start time = {start_time}
                  End time = {end_time}"""
                 ).format(start_time=start_time, end_time=end_time)
    
         input_geos = open( 'input.geos', 'r' )
-        time_input_file_location = os.path.join(dir, (start_time+".input.geos"))
+        time_input_file_location = os.path.join(_dir, (start_time+".input.geos"))
         output_file = open(time_input_file_location, 'w')
       
         if debug:
-             print ("writing to file {filename}"
+             print("writing to file {filename}"
                  ).format(filename=time_input_file_location)
 
 
@@ -546,9 +627,9 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
     memory_need   = inputs.memory_need
 
     ## create folder queue files 
-    dir = os.path.dirname("queue_files/")
-    if not os.path.exists(dir):
-        os.makedirs(dir)     
+    _dir = os.path.dirname("queue_files/")
+    if not os.path.exists(_dir):
+        os.makedirs(_dir)     
 
     # modify the input files to have the correct start months
     for time in times:
@@ -686,7 +767,7 @@ fi
             end_time=end_time
             )
 
-        queue_file_location = os.path.join(dir, (start_time + ".pbs"))
+        queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
         queue_file = open(queue_file_location, 'wb')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command
@@ -716,3 +797,103 @@ qsub queue_files/{month}.pbs
 
 if __name__ == '__main__':
     main(debug=DEBUG)
+
+
+
+########
+# Tests
+########
+
+
+def test_check_inputs_queue_priority():
+    """
+    Test check_inputs() queue_priority
+    """
+    inputs = GET_INPUTS()
+    for item in [1000, "1000", 1023, -1024, 0, -0]:
+        inputs.queue_priority = item
+        check_inputs(inputs)
+    for item in [-2000, "bob", 1024]:
+        with pytest.raises(Exception):
+            inputs.queue_priority = item
+            check_inputs(inputs)
+    return
+
+def test_check_inputs_queue_name():
+    """
+    Test check_inputs() queue_name
+    """
+    inputs = GET_INPUTS()
+    for item in ["run"]:
+        inputs.queue_name = item
+        check_inputs(inputs)
+    for item in ["bob"]:
+        with pytest.raises(Exception):
+            inputs.queue_name = item
+            check_inputs(inputs)
+    return
+
+def test_check_inputs_out_of_hours_string():
+    """
+    Test check_inputs() out_of_hours_string
+    """
+    inputs = GET_INPUTS()
+    for item in ['yes', 'YES', 'Yes', 'Y', 'y']:
+        inputs["out_of_hours_string"] = item
+        check_inputs(inputs)
+        assert inputs["out_of_hours"], item
+    for item in ['NO', 'no', 'NO', 'No', 'N', 'n']:
+        inputs["out_of_hours_string"] = item
+        check_inputs(inputs)
+        assert not inputs["out_of_hours"], item
+    for item in ["bob"]:
+        with pytest.raises(Exception):
+            inputs.out_of_hours_string = item
+            check_inputs(inputs)
+    return
+
+def test_check_inputs_run_script_string():
+    """
+    Test check_inputs() run_script_strings
+    """
+    inputs = GET_INPUTS()
+    yes = ['yes', 'YES', 'Yes', 'Y', 'y'] 
+    no = ['NO','no', 'NO', 'No', 'N', 'n'] 
+    for item in yes:
+        inputs.email_option = item
+        check_inputs(inputs)
+        assert inputs.email, item
+    for item in no:
+        inputs.email_option = item
+        check_inputs(inputs)
+        assert not inputs.email, item
+    options = ['yes', 'YES', 'Yes', 'Y', 'y', 'no', 'NO', 'No', 'N', 'n'] 
+    for item in options:
+        inputs.run_script_string = item
+        check_inputs(inputs)
+    for item in [-2000, "bob", 1024]:
+        with pytest.raises(Exception):
+            inputs.run_script_string = item
+            check_inputs(inputs)
+    return
+
+def test_check_inputs_email_options():
+    """
+    Test check_inputs() email_options
+    """
+    inputs = GET_INPUTS()
+    yes = ['yes', 'YES', 'Yes', 'Y', 'y'] 
+    no = ['NO','no', 'NO', 'No', 'N', 'n'] 
+    for item in yes:
+        inputs.email_option = item
+        check_inputs(inputs)
+        assert inputs.email, item
+    for item in no:
+        inputs.email_option = item
+        check_inputs(inputs)
+        assert not inputs.email, item
+    for item in [-2000, "bob", 1024]:
+        with pytest.raises(Exception):
+            inputs.email_option = item
+            check_inputs(inputs)
+    return
