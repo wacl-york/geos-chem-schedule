@@ -849,8 +849,22 @@ def test_check_inputs():
         "invalid_data": ["bob"],
         "data_logical": "out_of_hours"
         }
+    email_option = {
+        "name": "email_option",
+        "valid_data": yess + nooo,
+        "invalid_data": ["bob", 1000],
+        "data_logical": "email"
+        }
+    run_script_string = {
+        "name": "run_script_string",
+        "valid_data": yess + nooo,
+        "invalid_data": ["bob"],
+        "data_logical": "run_script"
+        }
 
-    tests = [queue_priority, queue_name, out_of_hours_string]
+
+    tests = [queue_priority, queue_name, out_of_hours_string,
+             email_option, run_script_string]
 
     for test in tests:
         for data in test["valid_data"]:
@@ -966,6 +980,7 @@ def test_check_inputs_run_script_string():
             check_inputs(inputs)
     return
 
+# Replaced
 def test_check_inputs_email_options():
     """
     Test check_inputs() email_options
