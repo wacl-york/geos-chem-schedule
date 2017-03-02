@@ -596,7 +596,12 @@ def test_update_output_line():
         "linein": "Schedule output for MAR : 3000000000000000000000000000000",
         "lineout": "Schedule output for MAR : 0000300000000000000000000000000",
         }
-    tests = [test_1]
+    test_2 = {
+        "end_time": "20140405",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000",
+        "lineout": "Schedule output for MAR : 0000000000000000000000000000000",
+        }
+    tests = [test_1, test_2]
     for test in tests:
         assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
 
@@ -666,6 +671,18 @@ def create_the_input_files(times, debug=False):
         start_time = time
         input_geos.close()
     return;
+
+def create_new_input_file(start_time, end_time, input_file):
+    """
+    create a new input file based on the passed in open input file.
+    INPUTS:
+        start_time: YYYYMMSS
+        end_time: YYYYMMSS
+        input_file: Open file that is a list of strings
+    OUTPUT:
+        output_file: output file that is a list of strings
+    """
+    return
 
 def create_the_queue_files(times, inputs, debug=DEBUG ):
 
