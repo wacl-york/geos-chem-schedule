@@ -5,7 +5,7 @@ This allows fitting in smaller queues and fairer access.
 
 The jobs can call the next job in the sequence meaning you can submit in the
 same way.
-
+ - file name = monthly_run.py
 There are also options that you can either pass as arguments or run a UI
 if no arguments are passed.
 see "$ monthly_run.py --help" for more information.
@@ -13,12 +13,8 @@ see "$ monthly_run.py --help" for more information.
 
 # file name = monthly_run.py
 
-#############
-# If you want to edit the default settings, then after the first run,
-# The script will create a settings.json that you can change.
-#############
 
-
+# Master debug switch for main driver
 from __future__ import absolute_import
 from __future__ import print_function
 import subprocess
@@ -84,7 +80,6 @@ class GET_INPUTS:
 
 
         if os.path.exists(user_settings_file):
-
             settings_file = open(user_settings_file, 'r')
             options = json.load(settings_file)
         else:
@@ -118,7 +113,6 @@ class GET_INPUTS:
         """
         attrs = str(self.__dict__)
         return attrs
-
     def variables(self):
         """
         Return a list of class variables as a dictionary.
@@ -146,18 +140,17 @@ def run_completion_script():
     """
     return
 
-
+# --------------------------------------------------------------
 # Nothing below here should need changing, but feel free to look.
 
-
-
 def main( debug=DEBUG ):
-
-
+    """ 
+    Run monthly_run 
+    """
     # Get the default inputs as a class
     inputs = GET_INPUTS()
 
-    # Get the arguments from the comand line or UI.
+    # Get the arguments from the command line or UI.
     inputs = get_arguments( inputs, debug=DEBUG)
  
     # Check all the inputs are valid.
@@ -192,7 +185,7 @@ def check_inputs(inputs, debug=False):
     Input: inputs(dictionary)
     Output: inputs(dictionary)
     """
-
+    # Set variables from inputs
     queue_priority = inputs.queue_priority
     queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
@@ -210,9 +203,9 @@ def check_inputs(inputs, debug=False):
         "Unrecognised step size.",
         "try one of {steps}",
         ).format(steps=steps)
-
+ 
     assert (-1024 <= int(queue_priority) <= 1023), str(
-        "Priority not between -1024 and 1023. Recived {priority}"
+        "Priority not between -1024 and 1023. Received {priority}"
         ).format(priority=queue_priority)
 
     assert (queue_name in queue_names), str(
@@ -273,6 +266,7 @@ def backup_the_input_file():
     return
 
 
+
 def setup_script():
     """
     Creates a symbolic link allowing the use to run "monthly_run" from any folder"
@@ -306,8 +300,7 @@ def get_arguments(inputs, debug=DEBUG):
     """
     Get the arguments supplied from command line
     """
-
-   # If there are no arguments then run the gui.
+    # If there are no arguments then run the GUI
     if len(sys.argv)>1:
       for arg in sys.argv:
          if "monthly-run" in arg: continue
@@ -353,11 +346,12 @@ def get_arguments(inputs, debug=DEBUG):
         inputs = get_variables_from_cli(inputs)
     return inputs
 
+
 def get_variables_from_cli(inputs):
     """
     Get the variables needed from a UI
     """
-
+    # Set variables from inputs
     job_name = inputs.job_name
     queue_priority = inputs.queue_priority
     queue_name  = inputs.queue_name
@@ -416,7 +410,6 @@ def get_variables_from_cli(inputs):
     input = str(raw_input( 'DEFAULT = ' + memory_need + ' :\n'))
     if (len(input) != 0): memory_need = input
 
-
     # Run script check
     clear_screen()
     print( "Do you want to run the script now?\n")
@@ -425,7 +418,7 @@ def get_variables_from_cli(inputs):
 
     clear_screen()   
 
-
+    # Update input variables
     inputs.job_name = job_name
     inputs.queue_name = queue_name
     inputs.queue_priority = queue_priority
@@ -436,6 +429,7 @@ def get_variables_from_cli(inputs):
     inputs.step = step.lower()
     return inputs
 
+
 def run_the_script(run_script):
     """
     Call the run script with a subprocess command.
@@ -444,12 +438,14 @@ def run_the_script(run_script):
         subprocess.call(["bash", "run_geos.sh"])
     return
 
+
 def clear_screen():
     """
     Clear the screen of the terminal for the UI.
     """
     os.system('cls' if os.name == 'nt' else 'clear')
     return
+
 
 def get_start_and_end_dates():
     """
@@ -475,18 +471,17 @@ def list_of_times_to_run(start_time, end_time, inputs):
     """
     Create a list of start times and the end time of the run
     """
-
+    # Get steps from inputs
     step = inputs.step
 
     ###### TO-DO
     ######
     # This is the main file i need to change to get the list of times to run
-    # To get most compatability I will need to change the output formats of the
+    # To get most compatibility I will need to change the output formats of the
     # fils from YYYYMM to YYYYMMDD so that I can do that
     # I also need to add some checks for the input.geos so that all the output
     # dates have a 3 on them.
     #######
-
 
     def datetime_2_YYYYMMDD(_my_datetime):
         """
@@ -494,14 +489,12 @@ def list_of_times_to_run(start_time, end_time, inputs):
         """
         return _my_datetime.strftime("%Y%m%d")
 
-
     if step == "month":
         time_delta = relativedelta(months=1)
     elif step == "week":
         time_delta = relativedelta(weeks=1)
     elif step == "day":
         time_delta = relativedelta(days=1)
-
 
     start_datetime = datetime.datetime.strptime(start_time, "%Y%m%d")
     end_datetime = datetime.datetime.strptime(end_time, "%Y%m%d")
@@ -512,7 +505,6 @@ def list_of_times_to_run(start_time, end_time, inputs):
     while _timestamp < end_datetime:
         _timestamp = _timestamp + time_delta
         times.append(datetime_2_YYYYMMDD(_timestamp))
-
 
     return times
 
@@ -555,6 +547,7 @@ def test_list_of_times_to_run():
     return
 
 
+
 def update_output_line(line, end_time):
     """
     Make sure we have a 3 in the end date in input.geos output menu
@@ -569,7 +562,6 @@ def update_output_line(line, end_time):
     _current_month_name = calendar.month_name[int(end_time[4:6])]
     _current_month_name = _current_month_name[0:3].upper()
 
-
     _current_day_of_month = int(end_time[6:8])
     _position_in_string = 26+_current_day_of_month
 
@@ -579,7 +571,13 @@ def update_output_line(line, end_time):
     _line_start = line[:_position_in_string-1]
     _line_end = line[_position_in_string:]
 
-
+    ###########################################
+    # TODO - add check if year is leap year and adjust February
+    # TODO - if step=daily or weekly, then remove "3" values as default
+    # and set these values to "0" to make clear want output is required.
+    # Also add a switch to over ride this behaviour? 
+    ###########################################
+    
     if line[20:23] == _current_month_name:
         line = _line_start +'3' + _line_end
     else:
@@ -608,6 +606,12 @@ def test_update_output_line():
     return
 
 
+def is_current_year_a_leap_year():
+    """ Check if current year is a leap year """
+    # TODO
+    return
+
+
 def create_the_input_files(times, debug=False):
     """
     Create the input files for the run
@@ -622,7 +626,7 @@ def create_the_input_files(times, debug=False):
         os.makedirs(_dir)
 
 
-    # modify the input files to have the correct start times
+    # Modify the input files to have the correct start times
     # Also make sure they end on a 3
     for time in times:
         end_time = time
@@ -643,7 +647,6 @@ def create_the_input_files(times, debug=False):
              print("writing to file {filename}"
                  ).format(filename=time_input_file_location)
 
-
         for line in input_geos:
 
             if line.startswith("Start YYYYMMDD, HHMMSS  :"):
@@ -653,8 +656,7 @@ def create_the_input_files(times, debug=False):
             elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
                 newline = line[:26] + str(end_time) + line[34:] 
                 output_file.write(newline)
-         
-         # Force CSPEC on
+            # Force CSPEC on
             elif line.startswith("Read and save CSPEC_FULL:"):
                 newline = line[:26] + 'T \n' 
                 output_file.write(newline)
@@ -662,8 +664,6 @@ def create_the_input_files(times, debug=False):
             elif line.startswith("Schedule output for"):
                 newline = update_output_line( line, end_time )
                 output_file.write(newline)
-
-
             else: 
                 newline = line
                 output_file.write(newline)
@@ -684,9 +684,10 @@ def create_new_input_file(start_time, end_time, input_file):
     """
     return
 
-def create_the_queue_files(times, inputs, debug=DEBUG ):
 
-    # Create local varialbes
+def create_the_queue_files(times, inputs, debug=DEBUG ):
+    """ """
+    # Create local variables
     queue_name = inputs.queue_name
     job_name = inputs.job_name
     queue_priority = inputs.queue_priority
@@ -697,21 +698,19 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
     email_setting = inputs.email_setting
     memory_need   = inputs.memory_need
 
-    ## create folder queue files 
+    # Create folder queue files 
     _dir = os.path.dirname("queue_files/")
     if not os.path.exists(_dir):
         os.makedirs(_dir)     
 
-    # modify the input files to have the correct start months
+    # Modify the input files to have the correct start months
     for time in times:
         end_time = time
         if time == times[0]:
             start_time = time
             continue
 
-
-
-    # Make the out of hours string if only running out of hours
+        # Make the out of hours string if only running out of hours
         if out_of_hours:
              out_of_hours_string = (
  """
@@ -732,7 +731,9 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
         else:
             out_of_hours_string = "\n"
 
-    # Set up email if its the final run and email = True
+        # Set up email if its the final run and email = True
+        # TODO - add an option to always send email when run finishes? 
+        # or if run finishes without a success code?
         if email and (time == times[-1]):
                 email_string = (
 """
@@ -744,9 +745,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
         else:
             email_string = "\n"
 
-
-
-
+        # Setup queue file string     
         queue_file_string = (
 """#!/bin/bash
 #PBS -j oe
@@ -777,7 +776,7 @@ mkdir -p queue_output
 mkdir -p logs
 mkdir -p queue_files
 
-# set enviroment variables
+# Set environment variables      
 #
 set -x
 #
@@ -797,7 +796,7 @@ ulimit -s 200000000
 
 {out_of_hours_string}
 
-#change to the directory that the command was issued from
+# Change to the directory that the command was issued from
 echo running in $PBS_O_WORKDIR > logs/log.log
 echo starting on $(date) >> logs/log.log
 
@@ -814,7 +813,7 @@ ln -s input_files/{start_time}.input.geos input.geos
 mv ctm.bpch {start_time}.ctm.bpch
 mv HEMCO.log logs/{start_time}.HEMCO.log
 
-# Only submit the next month if GEOSCHEM completed correctly
+# Only submit the next month if GEOS-Chem completed correctly
 last_line = "$(tail -n1 {start_time}.geos.log)"
 complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
@@ -828,7 +827,7 @@ fi
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
-            job_name=(job_name + start_time)[:14], # job name can only be 15 charicters
+            job_name=(job_name + start_time)[:14], # job name can only be 15 characters
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
@@ -864,6 +863,9 @@ qsub queue_files/{month}.pbs
     run_script.write(run_script_string)
     run_script.close()
     return
+
+
+# --------------------------------------------------------------
 
 
 if __name__ == '__main__':
