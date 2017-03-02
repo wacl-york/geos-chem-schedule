@@ -139,28 +139,6 @@ class GET_INPUTS:
         return self.__dict__[name]
 
 
-
-
-
-
-
-
-def test_get_default_inputs():
-    """
-    Test get_default_inputs().
-    """
-#    inputs = get_default_inputs()
-    inputs = GET_INPUTS()
-    assert inputs.job_name == "GEOS"
-    assert inputs.step == "month"
-    assert inputs.queue_priority == "0"
-    assert inputs.run_script_string == "yes"
-    return
-
-
-
-
-
 def run_completion_script():
     """
     Run a script when the final month finishes. This could be a cleanup script
@@ -278,18 +256,6 @@ def check_inputs(inputs, debug=False):
 
     return inputs
 
-def test_check_inputs_steps():
-    """
-    Test check_inputs() steps
-    """
-    inputs = GET_INPUTS()
-    for step in ["month", "week", "day"]:
-        inputs.step = step
-        check_inputs(inputs)
-    with pytest.raises(Exception):
-        inputs.step = "bob"
-        check_inputs(inputs)
-    return
 
 
 
@@ -304,7 +270,8 @@ def backup_the_input_file():
     if not os.path.isfile( backup_input_file ):
        shutil.copyfile( input_file, backup_input_file )
 
-    return;
+    return
+
 
 def setup_script():
     """
@@ -495,11 +462,14 @@ def get_start_and_end_dates():
         if line.startswith("End   YYYYMMDD, HHMMSS  :"):
             end_date = line[26:34]
 
+    # Error checking though print...
     print("Start time = {start_date}".format(start_date=start_date))
     print("End time = {end_date}".format(end_date=end_date))
     input_geos.close()
 
     return start_date, end_date
+
+
 
 def list_of_times_to_run(start_time, end_time, inputs):
     """
@@ -546,9 +516,53 @@ def list_of_times_to_run(start_time, end_time, inputs):
 
     return times
 
+def test_list_of_times_to_run():
+    """
+    Make sure the list of times to run makes sense
+    """
+    monthly = {"step": "month",
+               "start_time": "20070101",
+               "end_time": "20080101",
+               "expected_output": ["20070101", "20070201", "20070301",
+                                   "20070401", "20070501", "20070601",
+                                   "20070701", "20070801", "20070901",
+                                   "20071001", "20071101", "20071201",
+                                   "20080101"]
+              }
+    leap_year = {"step": "week",
+                 "start_time": "20140720",
+                 "end_time": "20140831",
+                 "expected_output": ["20140720", "20140727", "20140803",
+                                     "20140810", "20140817", "20140824",
+                                     "20140831"]
+                }
+    dayly = {"step": "day",
+             "start_time": "20000101",
+             "end_time": "20000106",
+             "expected_output": ["20000101", "20000102", "20000103",
+                                 "20000104", "20000105", "20000106"]
+            }
+
+    tests = [monthly, leap_year, dayly]
+
+    for test in tests:
+        inputs = GET_INPUTS()
+        inputs["step"] = test["step"]
+        times = list_of_times_to_run(test["start_time"],
+                                     test["end_time"], inputs)
+        assert times == test["expected_output"]
+
+    return
+
+
 def update_output_line(line, end_time):
     """
     Make sure we have a 3 in the end date in input.geos output menu
+    INPUT:
+        line - string pulled from the input file
+        end_time - "YYYYMMDD"
+    OUTPUT:
+        line - string to write to the input file
     """
 
 #    _current_month_name = end_time.strf(time("%B"))
@@ -559,8 +573,12 @@ def update_output_line(line, end_time):
     _current_day_of_month = int(end_time[6:8])
     _position_in_string = 26+_current_day_of_month
 
+    # Replace all instances of 3 with 0 so we only have the final day as 3
+    line = line.replace('3', '0')
+
     _line_start = line[:_position_in_string-1]
     _line_end = line[_position_in_string:]
+
 
     if line[20:23] == _current_month_name:
         line = _line_start +'3' + _line_end
@@ -568,6 +586,21 @@ def update_output_line(line, end_time):
         line = _line_start + '0' + _line_end
 
     return line
+
+def test_update_output_line():
+    """
+    Tests for update_output_line
+    """
+    test_1 = {
+        "end_time": "20140305",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000",
+        "lineout": "Schedule output for MAR : 0000300000000000000000000000000",
+        }
+    tests = [test_1]
+    for test in tests:
+        assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
+
+    return
 
 
 def create_the_input_files(times, debug=False):
@@ -861,10 +894,15 @@ def test_check_inputs():
         "invalid_data": ["bob"],
         "data_logical": "run_script"
         }
+    steps = {
+        "name": "step",
+        "valid_data": ["month", "week", "day"],
+        "invalid_data": ["bob"],
+        }
 
 
     tests = [queue_priority, queue_name, out_of_hours_string,
-             email_option, run_script_string]
+             email_option, run_script_string, steps]
 
     for test in tests:
         for data in test["valid_data"]:
@@ -905,3 +943,29 @@ def test_check_inputs():
                     raise
     return
 
+def test_check_inputs_steps():
+    """
+    Test check_inputs() steps
+    """
+    inputs = GET_INPUTS()
+    for step in ["month", "week", "day"]:
+        inputs.step = step
+        check_inputs(inputs)
+    with pytest.raises(Exception):
+        inputs.step = "bob"
+        check_inputs(inputs)
+    return
+
+def test_get_start_and_end_dates():
+    "Test the retreval of the start date and end date"
+    # Make a test file
+    with open("input.geos", "w") as input_file:
+        input_file.write("Start YYYYMMDD, HHMMSS  : 20100102 123456\n")
+        input_file.write("End   YYYYMMDD, HHMMSS  : 20110102 123456")
+
+    start_time, end_time = get_start_and_end_dates()
+    assert start_time == "20100102"
+    assert end_time == "20110102"
+    # Cleanup
+    os.remove("input.geos")
+    return
