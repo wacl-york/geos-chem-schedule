@@ -33,6 +33,15 @@ import pytest
 
 
 DEBUG = True
+
+######
+# To do
+# Write complete test suit
+# Migrate from class to dictionary when tests are complete
+########
+
+
+
 class GET_INPUTS:
     """
     A class containing all the variables needed
@@ -95,6 +104,18 @@ class GET_INPUTS:
         """
         Set the method to print the class
         """
+        _vars = self.variables()
+        string = ""
+        for key, val in _vars.items():
+            string = string + "{key}: {val} \n".format(key=key, val=val)
+            print("{key}: {val} \n".format(key=key, val=val))
+#        attrs = str(self.__dict__)
+        return string
+
+    def __repr__(self):
+        """
+        Set the method to print the class
+        """
         attrs = str(self.__dict__)
         return attrs
 
@@ -107,7 +128,7 @@ class GET_INPUTS:
             Check if a key is a built in class function or variable
             """
             return bool(key.startswith('__') and not callable(key))
-        _vars = {key:val for key, vau in self.__dict__.items() if not built_in_function(key)}
+        _vars = {key:val for key, val in self.__dict__.items() if not built_in_function(key)}
         return _vars
 
     def __setitem__(self, name, value):
@@ -804,7 +825,73 @@ if __name__ == '__main__':
 # Tests
 ########
 
+def test_check_inputs():
+    """
+    Test check_inputs()
+    """
 
+    yess = ['yes', 'YES', 'Yes', 'Y', 'y']
+    nooo = ['NO', 'no', 'NO', 'No', 'N', 'n']
+
+    queue_priority = {
+        "name": "queue_priority",
+        "valid_data": [1000, "1000", 1023, -1024, 0, -0],
+        "invalid_data": [-2000, "bob", 1024]
+        }
+    queue_name = {
+        "name": "queue_name",
+        "valid_data": ["run"],
+        "invalid_data": ["bob"]
+        }
+    out_of_hours_string = {
+        "name": "out_of_hours_string",
+        "valid_data": yess + nooo,
+        "invalid_data": ["bob"],
+        "data_logical": "out_of_hours"
+        }
+
+    tests = [queue_priority, queue_name, out_of_hours_string]
+
+    for test in tests:
+        for data in test["valid_data"]:
+            inputs = GET_INPUTS()
+            inputs[test["name"]] = data
+            # Confirm the valid data works
+            try:
+                check_inputs(inputs)
+            except:
+                print("This should fail but it did not:")
+                print("Name = ", str(test["name"]), "\ndata = ", str(data))
+                print(inputs)
+                raise
+            # Confirm it changes the logical if one exists
+            if "data_logical" in test:
+                if data in yess:
+                    assert inputs[test["data_logical"]], ( \
+                        "Name=", str(test["name"]), "\ndata=", str(data), "\n",
+                        str(inputs))
+                if data in nooo:
+                    assert not inputs[test["data_logical"]], ( \
+                        "Name=", str(test["name"]), "\ndata=", str(data), "\n",
+                        str(inputs))
+
+
+        for data in test["invalid_data"]:
+            inputs = GET_INPUTS()
+            inputs[test["name"]] = data
+            # Confirm the invalid data fails
+            with pytest.raises(Exception):
+                try:
+                    check_inputs(inputs)
+                    print("This should fail but it did not:")
+                    print("Name = ", str(test["name"]), "\ndata = ", str(data))
+                    print(inputs)
+
+                except Exception:
+                    raise
+    return
+
+# Replaced
 def test_check_inputs_queue_priority():
     """
     Test check_inputs() queue_priority
@@ -819,6 +906,7 @@ def test_check_inputs_queue_priority():
             check_inputs(inputs)
     return
 
+#Replaced
 def test_check_inputs_queue_name():
     """
     Test check_inputs() queue_name
@@ -833,6 +921,7 @@ def test_check_inputs_queue_name():
             check_inputs(inputs)
     return
 
+#Replaced
 def test_check_inputs_out_of_hours_string():
     """
     Test check_inputs() out_of_hours_string
