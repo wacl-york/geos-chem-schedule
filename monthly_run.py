@@ -11,10 +11,6 @@ if no arguments are passed.
 see "$ monthly_run.py --help" for more information.
 """
 
-# file name = monthly_run.py
-
-
-# Master debug switch for main driver
 from __future__ import absolute_import
 from __future__ import print_function
 import subprocess
@@ -28,6 +24,7 @@ from dateutil.relativedelta import relativedelta
 import pytest
 
 
+# Master debug switch for main driver
 DEBUG = True
 
 ######
@@ -152,7 +149,7 @@ def main( debug=DEBUG ):
 
     # Get the arguments from the command line or UI.
     inputs = get_arguments( inputs, debug=DEBUG)
- 
+
     # Check all the inputs are valid.
     inputs = check_inputs(inputs, debug=DEBUG)
 
@@ -177,7 +174,7 @@ def main( debug=DEBUG ):
     # Send the script to the queue if wanted.
     run_the_script(inputs.run_script)
 
-    return;
+    return
 
 def check_inputs(inputs, debug=False):
     """
@@ -195,15 +192,15 @@ def check_inputs(inputs, debug=False):
     step = inputs.step
 
     queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
-    yes = ['yes', 'YES', 'Yes', 'Y', 'y']
-    no = ['no', 'NO', 'No', 'N', 'n']
+    yess = ['yes', 'YES', 'Yes', 'Y', 'y']
+    nooo = ['no', 'NO', 'No', 'N', 'n']
     steps = ["month", "week", "day"]
 
     assert (step in steps), str(
         "Unrecognised step size.",
         "try one of {steps}",
         ).format(steps=steps)
- 
+
     assert (-1024 <= int(queue_priority) <= 1023), str(
         "Priority not between -1024 and 1023. Received {priority}"
         ).format(priority=queue_priority)
@@ -212,39 +209,39 @@ def check_inputs(inputs, debug=False):
         "Unrecognised queue type: {queue_name}"
         ).format(queue_name=queue_name)
 
-    assert ((out_of_hours_string in yes) or (out_of_hours_string in no)), str(
+    assert ((out_of_hours_string in yess) or (out_of_hours_string in nooo)), str(
         "Unrecognised option for out of hours.",
-        "Try one of: {yes} / {no}",
+        "Try one of: {yess} / {nooo}",
         "The command given was {run_script_string}"
-        ).format(yes=yes, no=no, run_script_string=run_script_string)
+        ).format(yess=yess, nooo=nooo, run_script_string=run_script_string)
 
-    assert (run_script_string in yes) or (run_script_string in no), str(
+    assert (run_script_string in yess) or (run_script_string in nooo), str(
         "Unrecognised option for run the script on completion.",
-        "Try one of: {yes} / {no}",
+        "Try one of: {yess} / {nooo}",
         "The command given was: {run_script_string}."
-        ).format(yes=yes, no=no,
+        ).format(yess=yess, nooo=nooo,
                  run_script_string=run_script_string)
 
-    assert (email_option in yes) or (email_option in no), str(
+    assert (email_option in yess) or (email_option in nooo), str(
         "Email option is neither yes or no.",
         "Please check the settings.",
-        "Try one of: {yes} / {no}"
-        ).format(yes=yes, no=no)
+        "Try one of: {yess} / {nooo}"
+        ).format(yess=yess, nooo=nooo)
 
     # Create the logicals
-    if run_script_string in yes:
+    if run_script_string in yess:
         inputs["run_script"] = True
-    elif run_script_string in no:
+    elif run_script_string in nooo:
         inputs["run_script"] = False
 
-    if out_of_hours_string in yes:
+    if out_of_hours_string in yess:
         inputs["out_of_hours"] = True
-    elif out_of_hours_string in no:
+    elif out_of_hours_string in nooo:
         inputs["out_of_hours"] = False
 
-    if email_option in yes:
+    if email_option in yess:
         inputs["email"] = True
-    elif email_option in no:
+    elif email_option in nooo:
         inputs["email"] = False
 
     return inputs
@@ -260,8 +257,8 @@ def backup_the_input_file():
     input_file = "input.geos"
     backup_input_file = "input.geos.orig"
 
-    if not os.path.isfile( backup_input_file ):
-       shutil.copyfile( input_file, backup_input_file )
+    if not os.path.isfile(backup_input_file):
+        shutil.copyfile(input_file, backup_input_file)
 
     return
 
@@ -558,32 +555,23 @@ def update_output_line(line, end_time):
         line - string to write to the input file
     """
 
-#    _current_month_name = end_time.strf(time("%B"))
+    # Get the name of the month
     _current_month_name = calendar.month_name[int(end_time[4:6])]
     _current_month_name = _current_month_name[0:3].upper()
-
-    _current_day_of_month = int(end_time[6:8])
-    _position_in_string = 26+_current_day_of_month
 
     # Replace all instances of 3 with 0 so we only have the final day as 3
     line = line.replace('3', '0')
 
-    _line_start = line[:_position_in_string-1]
-    _line_end = line[_position_in_string:]
+    # Get the position of the last day of simulations
+    _current_day_of_month = int(end_time[6:8])
+    _position = 26+_current_day_of_month
 
-    ###########################################
-    # TODO - add check if year is leap year and adjust February
-    # TODO - if step=daily or weekly, then remove "3" values as default
-    # and set these values to "0" to make clear want output is required.
-    # Also add a switch to over ride this behaviour? 
-    ###########################################
-    
     if line[20:23] == _current_month_name:
-        line = _line_start +'3' + _line_end
+        newline = line[:_position-1] + '3' + line[_position:]
     else:
-        line = _line_start + '0' + _line_end
+        newline = line
 
-    return line
+    return newline
 
 def test_update_output_line():
     """
@@ -591,15 +579,26 @@ def test_update_output_line():
     """
     test_1 = {
         "end_time": "20140305",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000",
-        "lineout": "Schedule output for MAR : 0000300000000000000000000000000",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
+        "lineout": "Schedule output for MAR : 0000300000000000000000000000000\n",
         }
     test_2 = {
         "end_time": "20140405",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000",
-        "lineout": "Schedule output for MAR : 0000000000000000000000000000000",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
+        "lineout": "Schedule output for MAR : 0000000000000000000000000000000\n",
         }
-    tests = [test_1, test_2]
+    test_3 = {
+        "end_time": "20140831",
+        "linein": "Schedule output for AUG : 0000000000030000000000000000000\n",
+        "lineout": "Schedule output for AUG : 0000000000000000000000000000003\n",
+        }
+    test_4 = {
+        "end_time": "20140831",
+        "linein": "Schedule output for APR : 000000000000000000000000000000\n",
+        "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
+        }
+
+    tests = [test_1, test_2, test_3, test_4]
     for test in tests:
         assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
 
@@ -628,49 +627,50 @@ def create_the_input_files(times, debug=False):
 
     # Modify the input files to have the correct start times
     # Also make sure they end on a 3
+
+    # Read the input file
+    with open("input.geos", "r") as input_file:
+        input_geos = input_file.readlines()
+
     for time in times:
         end_time = time
         if (time == times[0]):
             start_time = time
             continue
       
-        if debug:
-             print("""start time = {start_time}
-                 End time = {end_time}"""
-                ).format(start_time=start_time, end_time=end_time)
-   
-        input_geos = open( 'input.geos', 'r' )
         time_input_file_location = os.path.join(_dir, (start_time+".input.geos"))
-        output_file = open(time_input_file_location, 'w')
-      
-        if debug:
-             print("writing to file {filename}"
-                 ).format(filename=time_input_file_location)
 
-        for line in input_geos:
+        new_input_geos = create_new_input_file(start_time, end_time, input_geos)
 
-            if line.startswith("Start YYYYMMDD, HHMMSS  :"):
-                newline = line[:26] + str(start_time) + line[34:] 
-                output_file.write(newline)
-                # Confirm the run starts on the first of the time
-            elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
-                newline = line[:26] + str(end_time) + line[34:] 
-                output_file.write(newline)
-            # Force CSPEC on
-            elif line.startswith("Read and save CSPEC_FULL:"):
-                newline = line[:26] + 'T \n' 
-                output_file.write(newline)
-            # Make sure write at end on a 3
-            elif line.startswith("Schedule output for"):
-                newline = update_output_line( line, end_time )
-                output_file.write(newline)
-            else: 
-                newline = line
-                output_file.write(newline)
-        output_file.close()
+        with open(time_input_file_location, 'w') as output_file:
+            output_file.writelines(new_input_geos)
+
+#      
+#
+#        for line in input_geos:
+#
+#            if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+#                newline = line[:26] + str(start_time) + line[34:] 
+#                output_file.write(newline)
+#                # Confirm the run starts on the first of the time
+#            elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
+#                newline = line[:26] + str(end_time) + line[34:] 
+#                output_file.write(newline)
+#            # Force CSPEC on
+#            elif line.startswith("Read and save CSPEC_FULL:"):
+#                newline = line[:26] + 'T \n' 
+#                output_file.write(newline)
+#            # Make sure write at end on a 3
+#            elif line.startswith("Schedule output for"):
+#                newline = update_output_line( line, end_time )
+#                output_file.write(newline)
+#            else: 
+#                newline = line
+#                output_file.write(newline)
+#        output_file.close()
+#        input_geos.close()
         start_time = time
-        input_geos.close()
-    return;
+    return
 
 def create_new_input_file(start_time, end_time, input_file):
     """
@@ -682,7 +682,63 @@ def create_new_input_file(start_time, end_time, input_file):
     OUTPUT:
         output_file: output file that is a list of strings
     """
+
+    new_lines = []
+
+    # Change the lines that need changing by reading their start date
+    for line in input_file:
+        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+            newline = line[:26] + str(start_time) + line[34:]
+            # Confirm the run starts on the first of the time
+        elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
+            newline = line[:26] + str(end_time) + line[34:]
+        # Force CSPEC on
+        elif line.startswith("Read and save CSPEC_FULL:"):
+            newline = line[:26] + 'T\n'
+        # Make sure write at end on a 3
+        elif line.startswith("Schedule output for"):
+            newline = update_output_line(line, end_time)
+        else:
+            newline = line
+        new_lines.append(newline)
+    return new_lines
+
+def test_create_new_input_file():
+    """
+    Test the input file editor works
+    """
+
+    test_1 = {
+        "start_time": "20130601",
+        "end_time": "20130608",
+        "input_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
+            "Read and save CSPEC_FULL: f\n",
+            "Schedule output for JAN : 3000000000000000000000000000000\n",
+            "Schedule output for JUL : 3000000000000000000000000000000\n",
+            "Schedule output for JUN : 300000000000000000000000000000\n",
+        ],
+        "output_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
+            "Read and save CSPEC_FULL: T\n",
+            "Schedule output for JAN : 0000000000000000000000000000000\n",
+            "Schedule output for JUL : 0000000000000000000000000000000\n",
+            "Schedule output for JUN : 000000030000000000000000000000\n",
+        ],
+    }
+
+    tests = [test_1]
+    for test in tests:
+        testing_lines = create_new_input_file(test["start_time"],
+                                              test["end_time"],
+                                              test["input_lines"])
+        correct_lines = test["output_lines"]
+        assert testing_lines == correct_lines
+
     return
+
 
 
 def create_the_queue_files(times, inputs, debug=DEBUG ):
