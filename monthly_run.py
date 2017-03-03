@@ -263,7 +263,6 @@ def backup_the_input_file():
     return
 
 
-
 def setup_script():
     """
     Creates a symbolic link allowing the use to run "monthly_run" from any folder"
@@ -342,6 +341,19 @@ def get_arguments(inputs, debug=DEBUG):
     else:
         inputs = get_variables_from_cli(inputs)
     return inputs
+
+def test_get_arguments():
+    """
+    Test that the passed arguments get assigned to the class.
+    """
+    ########
+    ## TO DO
+    ########
+    #
+    # Write these tests....
+    #
+    ########
+    return
 
 
 def get_variables_from_cli(inputs):
@@ -426,6 +438,19 @@ def get_variables_from_cli(inputs):
     inputs.step = step.lower()
     return inputs
 
+def test_get_variables_from_cli():
+    """
+    Test that varialbes passed from the cli make it into the class.
+    """
+    #########
+    ## To-do
+    ########
+    #
+    # Write this test
+    #
+    ##########
+    return
+
 
 def run_the_script(run_script):
     """
@@ -471,15 +496,6 @@ def list_of_times_to_run(start_time, end_time, inputs):
     # Get steps from inputs
     step = inputs.step
 
-    ###### TO-DO
-    ######
-    # This is the main file i need to change to get the list of times to run
-    # To get most compatibility I will need to change the output formats of the
-    # fils from YYYYMM to YYYYMMDD so that I can do that
-    # I also need to add some checks for the input.geos so that all the output
-    # dates have a 3 on them.
-    #######
-
     def datetime_2_YYYYMMDD(_my_datetime):
         """
         Get the geoschem YYYYMMDD from a datetime object.
@@ -504,44 +520,6 @@ def list_of_times_to_run(start_time, end_time, inputs):
         times.append(datetime_2_YYYYMMDD(_timestamp))
 
     return times
-
-def test_list_of_times_to_run():
-    """
-    Make sure the list of times to run makes sense
-    """
-    monthly = {"step": "month",
-               "start_time": "20070101",
-               "end_time": "20080101",
-               "expected_output": ["20070101", "20070201", "20070301",
-                                   "20070401", "20070501", "20070601",
-                                   "20070701", "20070801", "20070901",
-                                   "20071001", "20071101", "20071201",
-                                   "20080101"]
-              }
-    leap_year = {"step": "week",
-                 "start_time": "20140720",
-                 "end_time": "20140831",
-                 "expected_output": ["20140720", "20140727", "20140803",
-                                     "20140810", "20140817", "20140824",
-                                     "20140831"]
-                }
-    dayly = {"step": "day",
-             "start_time": "20000101",
-             "end_time": "20000106",
-             "expected_output": ["20000101", "20000102", "20000103",
-                                 "20000104", "20000105", "20000106"]
-            }
-
-    tests = [monthly, leap_year, dayly]
-
-    for test in tests:
-        inputs = GET_INPUTS()
-        inputs["step"] = test["step"]
-        times = list_of_times_to_run(test["start_time"],
-                                     test["end_time"], inputs)
-        assert times == test["expected_output"]
-
-    return
 
 
 
@@ -572,37 +550,6 @@ def update_output_line(line, end_time):
         newline = line
 
     return newline
-
-def test_update_output_line():
-    """
-    Tests for update_output_line
-    """
-    test_1 = {
-        "end_time": "20140305",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
-        "lineout": "Schedule output for MAR : 0000300000000000000000000000000\n",
-        }
-    test_2 = {
-        "end_time": "20140405",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
-        "lineout": "Schedule output for MAR : 0000000000000000000000000000000\n",
-        }
-    test_3 = {
-        "end_time": "20140831",
-        "linein": "Schedule output for AUG : 0000000000030000000000000000000\n",
-        "lineout": "Schedule output for AUG : 0000000000000000000000000000003\n",
-        }
-    test_4 = {
-        "end_time": "20140831",
-        "linein": "Schedule output for APR : 000000000000000000000000000000\n",
-        "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
-        }
-
-    tests = [test_1, test_2, test_3, test_4]
-    for test in tests:
-        assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
-
-    return
 
 
 def is_current_year_a_leap_year():
@@ -702,42 +649,6 @@ def create_new_input_file(start_time, end_time, input_file):
             newline = line
         new_lines.append(newline)
     return new_lines
-
-def test_create_new_input_file():
-    """
-    Test the input file editor works
-    """
-
-    test_1 = {
-        "start_time": "20130601",
-        "end_time": "20130608",
-        "input_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
-            "Read and save CSPEC_FULL: f\n",
-            "Schedule output for JAN : 3000000000000000000000000000000\n",
-            "Schedule output for JUL : 3000000000000000000000000000000\n",
-            "Schedule output for JUN : 300000000000000000000000000000\n",
-        ],
-        "output_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
-            "Read and save CSPEC_FULL: T\n",
-            "Schedule output for JAN : 0000000000000000000000000000000\n",
-            "Schedule output for JUL : 0000000000000000000000000000000\n",
-            "Schedule output for JUN : 000000030000000000000000000000\n",
-        ],
-    }
-
-    tests = [test_1]
-    for test in tests:
-        testing_lines = create_new_input_file(test["start_time"],
-                                              test["end_time"],
-                                              test["input_lines"])
-        correct_lines = test["output_lines"]
-        assert testing_lines == correct_lines
-
-    return
 
 
 
@@ -1043,4 +954,146 @@ def test_get_start_and_end_dates():
     assert end_time == "20110102"
     # Cleanup
     os.remove("input.geos")
+    return
+
+
+def test_list_of_times_to_run():
+    """
+    Make sure the list of times to run makes sense
+    """
+    monthly = {"step": "month",
+               "start_time": "20070101",
+               "end_time": "20080101",
+               "expected_output": ["20070101", "20070201", "20070301",
+                                   "20070401", "20070501", "20070601",
+                                   "20070701", "20070801", "20070901",
+                                   "20071001", "20071101", "20071201",
+                                   "20080101"]
+              }
+    leap_year = {"step": "week",
+                 "start_time": "20140720",
+                 "end_time": "20140831",
+                 "expected_output": ["20140720", "20140727", "20140803",
+                                     "20140810", "20140817", "20140824",
+                                     "20140831"]
+                }
+    dayly = {"step": "day",
+             "start_time": "20000101",
+             "end_time": "20000106",
+             "expected_output": ["20000101", "20000102", "20000103",
+                                 "20000104", "20000105", "20000106"]
+            }
+
+    tests = [monthly, leap_year, dayly]
+
+    for test in tests:
+        inputs = GET_INPUTS()
+        inputs["step"] = test["step"]
+        times = list_of_times_to_run(test["start_time"],
+                                     test["end_time"], inputs)
+        assert times == test["expected_output"]
+
+    return
+
+def test_create_new_input_file():
+    """
+    Test the input file editor works
+    """
+
+    test_1 = {
+        "start_time": "20130601",
+        "end_time": "20130608",
+        "input_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
+            "Read and save CSPEC_FULL: f\n",
+            "Schedule output for JAN : 3000000000000000000000000000000\n",
+            "Schedule output for JUL : 3000000000000000000000000000000\n",
+            "Schedule output for JUN : 300000000000000000000000000000\n",
+        ],
+        "output_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
+            "Read and save CSPEC_FULL: T\n",
+            "Schedule output for JAN : 0000000000000000000000000000000\n",
+            "Schedule output for JUL : 0000000000000000000000000000000\n",
+            "Schedule output for JUN : 000000030000000000000000000000\n",
+        ],
+    }
+
+    tests = [test_1]
+    for test in tests:
+        testing_lines = create_new_input_file(test["start_time"],
+                                              test["end_time"],
+                                              test["input_lines"])
+        correct_lines = test["output_lines"]
+        assert testing_lines == correct_lines
+
+    return
+
+def test_create_new_input_file():
+    """
+    Test the input file editor works
+    """
+
+    test_1 = {
+        "start_time": "20130601",
+        "end_time": "20130608",
+        "input_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
+            "Read and save CSPEC_FULL: f\n",
+            "Schedule output for JAN : 3000000000000000000000000000000\n",
+            "Schedule output for JUL : 3000000000000000000000000000000\n",
+            "Schedule output for JUN : 300000000000000000000000000000\n",
+        ],
+        "output_lines": [
+            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
+            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
+            "Read and save CSPEC_FULL: T\n",
+            "Schedule output for JAN : 0000000000000000000000000000000\n",
+            "Schedule output for JUL : 0000000000000000000000000000000\n",
+            "Schedule output for JUN : 000000030000000000000000000000\n",
+        ],
+    }
+
+    tests = [test_1]
+    for test in tests:
+        testing_lines = create_new_input_file(test["start_time"],
+                                              test["end_time"],
+                                              test["input_lines"])
+        correct_lines = test["output_lines"]
+        assert testing_lines == correct_lines
+
+    return
+
+def test_update_output_line():
+    """
+    Tests for update_output_line
+    """
+    test_1 = {
+        "end_time": "20140305",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
+        "lineout": "Schedule output for MAR : 0000300000000000000000000000000\n",
+        }
+    test_2 = {
+        "end_time": "20140405",
+        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
+        "lineout": "Schedule output for MAR : 0000000000000000000000000000000\n",
+        }
+    test_3 = {
+        "end_time": "20140831",
+        "linein": "Schedule output for AUG : 0000000000030000000000000000000\n",
+        "lineout": "Schedule output for AUG : 0000000000000000000000000000003\n",
+        }
+    test_4 = {
+        "end_time": "20140831",
+        "linein": "Schedule output for APR : 000000000000000000000000000000\n",
+        "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
+        }
+
+    tests = [test_1, test_2, test_3, test_4]
+    for test in tests:
+        assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
+
     return
