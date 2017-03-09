@@ -1031,42 +1031,6 @@ def test_create_new_input_file():
 
     return
 
-def test_create_new_input_file():
-    """
-    Test the input file editor works
-    """
-
-    test_1 = {
-        "start_time": "20130601",
-        "end_time": "20130608",
-        "input_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
-            "Read and save CSPEC_FULL: f\n",
-            "Schedule output for JAN : 3000000000000000000000000000000\n",
-            "Schedule output for JUL : 3000000000000000000000000000000\n",
-            "Schedule output for JUN : 300000000000000000000000000000\n",
-        ],
-        "output_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
-            "Read and save CSPEC_FULL: T\n",
-            "Schedule output for JAN : 0000000000000000000000000000000\n",
-            "Schedule output for JUL : 0000000000000000000000000000000\n",
-            "Schedule output for JUN : 000000030000000000000000000000\n",
-        ],
-    }
-
-    tests = [test_1]
-    for test in tests:
-        testing_lines = create_new_input_file(test["start_time"],
-                                              test["end_time"],
-                                              test["input_lines"])
-        correct_lines = test["output_lines"]
-        assert testing_lines == correct_lines
-
-    return
-
 def test_update_output_line():
     """
     Tests for update_output_line
@@ -1091,8 +1055,13 @@ def test_update_output_line():
         "linein": "Schedule output for APR : 000000000000000000000000000000\n",
         "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
         }
+    test_5 = {
+        "end_time": "20150630",
+        "linein": "Schedule output for JUN : 333333333333333333333333333333\n",
+        "lineout": "Schedule output for JUN : 000000000000000000000000000003\n",
+        }
 
-    tests = [test_1, test_2, test_3, test_4]
+    tests = [test_1, test_2, test_3, test_4, test_5]
     for test in tests:
         assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
 
