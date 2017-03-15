@@ -1,6 +1,6 @@
 #!/usr/local/anaconda/bin/python
 """
-A script to split up long GEOS_Chem jobs on Earth0 into shorter runs.
+A script to split up long GEOS-Chem jobs on Earth0 into shorter runs.
 This allows fitting in smaller queues and fairer access.
 
 The jobs can call the next job in the sequence meaning you can submit in the
@@ -44,7 +44,7 @@ class GET_INPUTS:
         step:                   month           - Time of the split chunks
         queue_priority:         0               - Priority of the job (-1024 to 1023)
         queue_name:             run             - Name of the queue to submit too
-        run_script_string:      yes             - Do you want to run the script immidiatley
+        run_script_string:      yes             - Do you want to run the script immediately
         out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
         wall_time:              "2:00:00"       - How long will a chunk take (overestimate)
         email_option:           "yes"           - Do you want an email upon completion?
@@ -132,7 +132,7 @@ class GET_INPUTS:
 
 def run_completion_script():
     """
-    Run a script when the final month finishes. This could be a cleanup script
+    Run a script when the final month finishes. This could be a clean up script
     or a post processing script.
     """
     return
@@ -380,7 +380,7 @@ def get_variables_from_cli(inputs):
     # Specify the step size
     clear_screen()
     print( 'What time step size do you want?\n', \
-        '(month recomended for 4x5, 2x25. week or day available).\n')
+        '(month recommended for 4x5, 2x25. week or day available).\n')
     input = str(raw_input( 'DEFAULT = ' + step + ' :\n'))
     if (len(input) != 0): step = input
 
@@ -440,7 +440,7 @@ def get_variables_from_cli(inputs):
 
 def test_get_variables_from_cli():
     """
-    Test that varialbes passed from the cli make it into the class.
+    Test that variables passed from the cli make it into the class.
     """
     #########
     ## To-do
@@ -952,7 +952,7 @@ def test_get_start_and_end_dates():
     start_time, end_time = get_start_and_end_dates()
     assert start_time == "20100102"
     assert end_time == "20110102"
-    # Cleanup
+    # clean up
     os.remove("input.geos")
     return
 
