@@ -21,7 +21,7 @@ import shutil
 import datetime
 import calendar
 from dateutil.relativedelta import relativedelta
-import pytest
+import re
 
 
 # Master debug switch for main driver
@@ -66,7 +66,6 @@ class GET_INPUTS:
         self.email_setting = "e"
         self.memory_need = "16gb"
         self.run_script = False
-        self.out_of_hours = False
         self.email = False
 
 
@@ -179,7 +178,6 @@ def check_inputs(inputs, debug=False):
     # Set variables from inputs
     run_script_string = inputs.run_script_string
     email_option = inputs.email_option
-    wall_time = inputs.wall_time
     step = inputs.step
 
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
@@ -300,6 +298,7 @@ def get_arguments(inputs, debug=DEBUG):
             --memory-need=
             e.g. to set the queue name to 'bob' write --queue-name=bob
             """)
+                break
         else:
             print ("""Invalid argument {arg}
                      Try --help for more info."""
@@ -336,7 +335,7 @@ def get_variables_from_cli(inputs):
     # Name the queue
     clear_screen()
     print('What name do you want in the queue?\n', \
-    '(Will truncate to 9 charicters).\n')
+    '(Will truncate to 9 characters).\n')
     input = str(raw_input('DEFAULT = ' + job_name + ' :\n'))
     if input:
         job_name = input
@@ -497,13 +496,6 @@ def update_output_line(line, end_time):
 
     return newline
 
-
-def is_current_year_a_leap_year():
-    """ Check if current year is a leap year """
-    # TODO
-    return
-
-
 def create_the_input_files(times, debug=False):
     """
     Create the input files for the run
@@ -602,7 +594,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
     """ """
     # Create local variables
     job_name = inputs.job_name
-    out_of_hours = inputs.out_of_hours
     wall_time = inputs.wall_time
     email = inputs.email
     email_address = inputs.email_address
@@ -622,13 +613,11 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
             continue
 
         # Set up email if its the final run and email = True
-        # TODO - add an option to always send email when run finishes? 
-        # or if run finishes without a success code?
         if email and (time == times[-1]):
             email_string = (
                 """
-#PBS -m {email_setting}
-#PBS -M {email_address}
+#$ -m {email_setting}
+#$ -M {email_address}
 """
                 ).format(email_setting=email_setting,
                          email_address=email_address)
@@ -638,25 +627,19 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
         # Setup queue file string
         queue_file_string = (
             """#!/bin/bash
-#PBS -j oe
-#PBS -V
-#     ncpus is number of hyperthreads - the number of physical core is half of that
+#$ -j oe
+#$ -V
+#$ -N {job_name}
+#$ -r n
+#$ -l h_rt={wall_time}
+#$ -l h_vmem={memory_need}
+#$ -pe smp 16
+#$ -cwd
+#$ -o queue_output/{start_time}.output
+#$ -e queue_output/{start_time}.error
 #
-#PBS -N {job_name}
-#PBS -r n
-#PBS -l walltime={wall_time}
-#PBS -l mem={memory_need}
-#PBS -l nodes=1:ppn=16
-#
-#PBS -o queue_output/{start_time}.output
-#PBS -e queue_output/{start_time}.error
-#
-
 
 {email_string}
-
-
-cd $PBS_O_WORKDIR
 
 # Make sure the required dirs exists
 mkdir -p queue_output
@@ -668,21 +651,13 @@ mkdir -p queue_files
 set -x
 #
 #
-export OMP_WAIT_POLICY=active
-export OMP_DYNAMIC=false
-export OMP_PROC_BIND=true
-
-export OMP_NUM_THREADS=16
 export F_UFMTENDIAN=big
-export MPSTZ=1024M
-export KMP_STACKSIZE=100000000
-export KMP_LIBRARY=turnaround
+export OMP_STACKSIZE=500m
 export FORT_BUFFERED=true
-ulimit -s 200000000
 
 
 # Change to the directory that the command was issued from
-echo running in $PBS_O_WORKDIR > logs/log.log
+echo running in $(pwd) > logs/log.log
 echo starting on $(date) >> logs/log.log
 
 # Create the exit file
@@ -692,7 +667,7 @@ chmod 775 exit_geos.sh
 
 rm -f input.geos
 ln -s input_files/{start_time}.input.geos input.geos
-/opt/hpe/hpc/mpt/mpt-2.16/bin/omplace ./geos > logs/{start_time}.geos.log
+./geos > logs/{start_time}.geos.log
 
 # Prepend the files with the date
 mv ctm.bpch {start_time}.ctm.bpch
@@ -703,23 +678,22 @@ last_line = "$(tail -n1 {start_time}.geos.log)"
 complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
 if [ $last_line = $complete_last_line]; then
-   job_number=$(qsub queue_files/{end_time}.pbs)
+   job_number=$(qsub queue_files/{end_time}.sge)
    echo $job_number
 fi
 """
         )
-
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             job_name=(job_name + start_time)[:14], # job name can only be 15 characters
             start_time=start_time,
             wall_time=wall_time,
-            memory_need=memory_need,
+            memory_need=int(re.sub("[!-/A-z]", "", memory_need)) / 16,
             email_string=email_string,
             end_time=end_time
             )
 
-        queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
+        queue_file_location = os.path.join(_dir, (start_time + ".sge"))
         queue_file = open(queue_file_location, 'wb')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command
@@ -740,7 +714,7 @@ def create_the_run_script(months):
     run_script = open('run_geos.sh', 'w')
     run_script_string = ("""
 #!/bin/bash
-qsub queue_files/{month}.pbs
+qsub queue_files/{month}.sge
      """).format(month=months[0])
     run_script.write(run_script_string)
     run_script.close()
@@ -752,215 +726,3 @@ qsub queue_files/{month}.pbs
 
 if __name__ == '__main__':
     main(debug=DEBUG)
-
-
-
-########
-# Tests
-########
-
-def test_check_inputs():
-    """
-    Test check_inputs()
-    """
-
-    yess = ['yes', 'YES', 'Yes', 'Y', 'y']
-    nooo = ['NO', 'no', 'NO', 'No', 'N', 'n']
-
-    email_option = {
-        "name": "email_option",
-        "valid_data": yess + nooo,
-        "invalid_data": ["bob", 1000],
-        "data_logical": "email"
-        }
-    run_script_string = {
-        "name": "run_script_string",
-        "valid_data": yess + nooo,
-        "invalid_data": ["bob"],
-        "data_logical": "run_script"
-        }
-    steps = {
-        "name": "step",
-        "valid_data": ["month", "week", "day"],
-        "invalid_data": ["bob"],
-        }
-
-
-    tests = [email_option, run_script_string, steps]
-
-    for test in tests:
-        for data in test["valid_data"]:
-            inputs = GET_INPUTS()
-            inputs[test["name"]] = data
-            # Confirm the valid data works
-            try:
-                check_inputs(inputs)
-            except:
-                print("This should fail but it did not:")
-                print("Name = ", str(test["name"]), "\ndata = ", str(data))
-                print(inputs)
-                raise
-            # Confirm it changes the logical if one exists
-            if "data_logical" in test:
-                if data in yess:
-                    assert inputs[test["data_logical"]], ( \
-                        "Name=", str(test["name"]), "\ndata=", str(data), "\n",
-                        str(inputs))
-                if data in nooo:
-                    assert not inputs[test["data_logical"]], ( \
-                        "Name=", str(test["name"]), "\ndata=", str(data), "\n",
-                        str(inputs))
-
-
-        for data in test["invalid_data"]:
-            inputs = GET_INPUTS()
-            inputs[test["name"]] = data
-            # Confirm the invalid data fails
-            with pytest.raises(Exception):
-                try:
-                    check_inputs(inputs)
-                    print("This should fail but it did not:")
-                    print("Name = ", str(test["name"]), "\ndata = ", str(data))
-                    print(inputs)
-
-                except Exception:
-                    raise
-    return
-
-def test_check_inputs_steps():
-    """
-    Test check_inputs() steps
-    """
-    inputs = GET_INPUTS()
-    for step in ["month", "week", "day"]:
-        inputs.step = step
-        check_inputs(inputs)
-    with pytest.raises(Exception):
-        inputs.step = "bob"
-        check_inputs(inputs)
-    return
-
-def test_get_start_and_end_dates():
-    "Test the retreval of the start date and end date"
-    # Make a test file
-    with open("input.geos", "w") as input_file:
-        input_file.write("Start YYYYMMDD, HHMMSS  : 20100102 123456\n")
-        input_file.write("End   YYYYMMDD, HHMMSS  : 20110102 123456")
-
-    start_time, end_time = get_start_and_end_dates()
-    assert start_time == "20100102"
-    assert end_time == "20110102"
-    # clean up
-    os.remove("input.geos")
-    return
-
-
-def test_list_of_times_to_run():
-    """
-    Make sure the list of times to run makes sense
-    """
-    monthly = {"step": "month",
-               "start_time": "20070101",
-               "end_time": "20080101",
-               "expected_output": ["20070101", "20070201", "20070301",
-                                   "20070401", "20070501", "20070601",
-                                   "20070701", "20070801", "20070901",
-                                   "20071001", "20071101", "20071201",
-                                   "20080101"]
-              }
-    leap_year = {"step": "week",
-                 "start_time": "20140720",
-                 "end_time": "20140831",
-                 "expected_output": ["20140720", "20140727", "20140803",
-                                     "20140810", "20140817", "20140824",
-                                     "20140831"]
-                }
-    dayly = {"step": "day",
-             "start_time": "20000101",
-             "end_time": "20000106",
-             "expected_output": ["20000101", "20000102", "20000103",
-                                 "20000104", "20000105", "20000106"]
-            }
-
-    tests = [monthly, leap_year, dayly]
-
-    for test in tests:
-        inputs = GET_INPUTS()
-        inputs["step"] = test["step"]
-        times = list_of_times_to_run(test["start_time"],
-                                     test["end_time"], inputs)
-        assert times == test["expected_output"]
-
-    return
-
-def test_create_new_input_file():
-    """
-    Test the input file editor works
-    """
-
-    test_1 = {
-        "start_time": "20130601",
-        "end_time": "20130608",
-        "input_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
-            "Read and save CSPEC_FULL: f\n",
-            "Schedule output for JAN : 3000000000000000000000000000000\n",
-            "Schedule output for JUL : 3000000000000000000000000000000\n",
-            "Schedule output for JUN : 300000000000000000000000000000\n",
-        ],
-        "output_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
-            "Read and save CSPEC_FULL: T\n",
-            "Schedule output for JAN : 0000000000000000000000000000000\n",
-            "Schedule output for JUL : 0000000000000000000000000000000\n",
-            "Schedule output for JUN : 000000030000000000000000000000\n",
-        ],
-    }
-
-    tests = [test_1]
-    for test in tests:
-        testing_lines = create_new_input_file(test["start_time"],
-                                              test["end_time"],
-                                              test["input_lines"])
-        correct_lines = test["output_lines"]
-        assert testing_lines == correct_lines
-
-    return
-
-def test_update_output_line():
-    """
-    Tests for update_output_line
-    """
-    test_1 = {
-        "end_time": "20140305",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
-        "lineout": "Schedule output for MAR : 0000300000000000000000000000000\n",
-        }
-    test_2 = {
-        "end_time": "20140405",
-        "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
-        "lineout": "Schedule output for MAR : 0000000000000000000000000000000\n",
-        }
-    test_3 = {
-        "end_time": "20140831",
-        "linein": "Schedule output for AUG : 0000000000030000000000000000000\n",
-        "lineout": "Schedule output for AUG : 0000000000000000000000000000003\n",
-        }
-    test_4 = {
-        "end_time": "20140831",
-        "linein": "Schedule output for APR : 000000000000000000000000000000\n",
-        "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
-        }
-    test_5 = {
-        "end_time": "20150630",
-        "linein": "Schedule output for JUN : 333333333333333333333333333333\n",
-        "lineout": "Schedule output for JUN : 000000000000000000000000000003\n",
-        }
-
-    tests = [test_1, test_2, test_3, test_4, test_5]
-    for test in tests:
-        assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
-
-    return
