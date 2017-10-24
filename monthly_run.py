@@ -1,4 +1,4 @@
-#!/usr/local/anaconda/bin/python
+#!/usr/bin/env python
 """
 A script to split up long GEOS-Chem jobs on Earth0 into shorter runs.
 This allows fitting in smaller queues and fairer access.
@@ -191,7 +191,7 @@ def check_inputs(inputs, debug=False):
     wall_time = inputs.wall_time
     step = inputs.step
 
-    queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
+    queue_names = ['run', 'large']
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
     steps = ["month", "week", "day"]
@@ -695,7 +695,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
        if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
           job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)
           echo $job_number
-          echo qdel $job_numner > exit_geos.sh
+          echo qdel $job_number > exit_geos.sh
           echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
           echo $(date)>>logs/log.log
           exit 1
@@ -783,7 +783,7 @@ chmod 775 exit_geos.sh
 
 rm -f input.geos
 ln -s input_files/{start_time}.input.geos input.geos
-/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > logs/{start_time}.geos.log
+/opt/hpe/hpc/mpt/mpt-2.16/bin/omplace ./geos > logs/{start_time}.geos.log
 
 # Prepend the files with the date
 mv ctm.bpch {start_time}.ctm.bpch
