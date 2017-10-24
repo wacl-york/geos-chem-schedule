@@ -43,7 +43,6 @@ class GET_INPUTS:
         job_name:               GEOS            - Name of the job to appear in qstat
         step:                   month           - Time of the split chunks
         run_script_string:      yes             - Do you want to run the script immediately
-        out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
         wall_time:              "2:00:00"       - How long will a chunk take (overestimate)
         email_option:           "yes"           - Do you want an email upon completion?
         email_address:          "example@example.com" - Address to send emails to
@@ -61,7 +60,6 @@ class GET_INPUTS:
         self.job_name = "GEOS"
         self.step = "month"
         self.run_script_string = "yes"
-#        self.out_of_hours_string = "no"
         self.wall_time = "2:00:00"
         self.email_option = "yes"
         self.email_address = "example@example.com"
@@ -180,7 +178,6 @@ def check_inputs(inputs, debug=False):
     """
     # Set variables from inputs
     run_script_string = inputs.run_script_string
-    out_of_hours_string = inputs.out_of_hours_string
     email_option = inputs.email_option
     wall_time = inputs.wall_time
     step = inputs.step
@@ -193,12 +190,6 @@ def check_inputs(inputs, debug=False):
         "Unrecognised step size.",
         "try one of {steps}",
         ).format(steps=steps)
-
-    assert ((out_of_hours_string in yess) or (out_of_hours_string in nooo)), str(
-        "Unrecognised option for out of hours.",
-        "Try one of: {yess} / {nooo}",
-        "The command given was {run_script_string}"
-        ).format(yess=yess, nooo=nooo, run_script_string=run_script_string)
 
     assert (run_script_string in yess) or (run_script_string in nooo), str(
         "Unrecognised option for run the script on completion.",
@@ -218,11 +209,6 @@ def check_inputs(inputs, debug=False):
         inputs["run_script"] = True
     elif run_script_string in nooo:
         inputs["run_script"] = False
-
-    if out_of_hours_string in yess:
-        inputs["out_of_hours"] = True
-    elif out_of_hours_string in nooo:
-        inputs["out_of_hours"] = False
 
     if email_option in yess:
         inputs["email"] = True
@@ -294,8 +280,6 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.step = arg[7:].strip()
             elif arg.startswith("--submit="):
                 inputs.run_script_string = arg[9:].strip()
-            elif arg.startswith("--out-of-hours="):
-                inputs.out_of_hours_string = arg[15:].strip()
             elif arg.startswith("--wall-time="):
                 inputs.wall_time = arg[12:].strip()
             elif arg.startswith("--memory-need="):
@@ -345,7 +329,6 @@ def get_variables_from_cli(inputs):
     # Set variables from inputs
     job_name = inputs.job_name
     run_script_string = inputs.run_script_string
-    out_of_hours_string = inputs.out_of_hours_string
     wall_time = inputs.wall_time
     memory_need = inputs.memory_need
     step = inputs.step
@@ -365,14 +348,6 @@ def get_variables_from_cli(inputs):
     input = str(raw_input('DEFAULT = ' + step + ' :\n'))
     if input:
         step = input
-
-    # Check for out of hours run
-    clear_screen()
-    print("Do you only want to run jobs out of normal work hours?\n" \
-        "(Monday to Friday 9am - 5pm)?\n")
-    input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
-    if input:
-        out_of_hours_string = input
 
     # Set the walltime for the run
     clear_screen()
@@ -404,7 +379,6 @@ def get_variables_from_cli(inputs):
     # Update input variables
     inputs.job_name = job_name
     inputs.run_script_string = run_script_string
-    inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
     inputs.memory_need = memory_need
     inputs.step = step.lower()
@@ -647,27 +621,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
             start_time = time
             continue
 
-        # Make the out of hours string if only running out of hours
-        if out_of_hours:
-            out_of_hours_string = (
-                """
- if ! ( $out_of_hours_overide ); then
-    if $out_of_hours ; then
-       if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
-          job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)
-          echo $job_number
-          echo qdel $job_number > exit_geos.sh
-          echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
-          echo $(date)>>logs/log.log
-          exit 1
-       fi
-    fi
- fi
- """
-            ).format(start_time=start_time)
-        else:
-            out_of_hours_string = "\n"
-
         # Set up email if its the final run and email = True
         # TODO - add an option to always send email when run finishes? 
         # or if run finishes without a success code?
@@ -728,8 +681,6 @@ export FORT_BUFFERED=true
 ulimit -s 200000000
 
 
-{out_of_hours_string}
-
 # Change to the directory that the command was issued from
 echo running in $PBS_O_WORKDIR > logs/log.log
 echo starting on $(date) >> logs/log.log
@@ -765,7 +716,6 @@ fi
             wall_time=wall_time,
             memory_need=memory_need,
             email_string=email_string,
-            out_of_hours_string=out_of_hours_string,
             end_time=end_time
             )
 
@@ -817,12 +767,6 @@ def test_check_inputs():
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['NO', 'no', 'NO', 'No', 'N', 'n']
 
-    out_of_hours_string = {
-        "name": "out_of_hours_string",
-        "valid_data": yess + nooo,
-        "invalid_data": ["bob"],
-        "data_logical": "out_of_hours"
-        }
     email_option = {
         "name": "email_option",
         "valid_data": yess + nooo,
@@ -842,8 +786,7 @@ def test_check_inputs():
         }
 
 
-    tests = [out_of_hours_string,
-             email_option, run_script_string, steps]
+    tests = [email_option, run_script_string, steps]
 
     for test in tests:
         for data in test["valid_data"]:
