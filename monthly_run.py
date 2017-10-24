@@ -42,7 +42,6 @@ class GET_INPUTS:
         attribute:              default         - description
         job_name:               GEOS            - Name of the job to appear in qstat
         step:                   month           - Time of the split chunks
-        queue_priority:         0               - Priority of the job (-1024 to 1023)
         queue_name:             run             - Name of the queue to submit too
         run_script_string:      yes             - Do you want to run the script immediately
         out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
@@ -62,10 +61,9 @@ class GET_INPUTS:
         # set defaults
         self.job_name = "GEOS"
         self.step = "month"
-        self.queue_priority = "0"
-        self.queue_name = "run"
+#        self.queue_name = "run"
         self.run_script_string = "yes"
-        self.out_of_hours_string = "no"
+#        self.out_of_hours_string = "no"
         self.wall_time = "2:00:00"
         self.email_option = "yes"
         self.email_address = "example@example.com"
@@ -183,7 +181,6 @@ def check_inputs(inputs, debug=False):
     Output: inputs(dictionary)
     """
     # Set variables from inputs
-    queue_priority = inputs.queue_priority
     queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
@@ -200,10 +197,6 @@ def check_inputs(inputs, debug=False):
         "Unrecognised step size.",
         "try one of {steps}",
         ).format(steps=steps)
-
-    assert (-1024 <= int(queue_priority) <= 1023), str(
-        "Priority not between -1024 and 1023. Received {priority}"
-        ).format(priority=queue_priority)
 
     assert (queue_name in queue_names), str(
         "Unrecognised queue type: {queue_name}"
@@ -309,8 +302,6 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.step = arg[7:].strip()
             elif arg.startswith("--queue-name="):
                 inputs.queue_name = arg[13:].strip()
-            elif arg.startswith("--queue-priority="):
-                inputs.queue_priority = arg[17:].strip()
             elif arg.startswith("--submit="):
                 inputs.run_script_string = arg[9:].strip()
             elif arg.startswith("--out-of-hours="):
@@ -363,7 +354,6 @@ def get_variables_from_cli(inputs):
     """
     # Set variables from inputs
     job_name = inputs.job_name
-    queue_priority = inputs.queue_priority
     queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
@@ -386,13 +376,6 @@ def get_variables_from_cli(inputs):
     input = str(raw_input('DEFAULT = ' + step + ' :\n'))
     if input:
         step = input
-
-    # Give the job a priority
-    clear_screen()
-    print("What queue priority do you want? (Between -1024 and 1023).\n")
-    input = str(raw_input('DEFAULT = ' + queue_priority + ' :\n'))
-    if input:
-        queue_priority = input
 
     # Choose the queue
     clear_screen()
@@ -439,7 +422,6 @@ def get_variables_from_cli(inputs):
     # Update input variables
     inputs.job_name = job_name
     inputs.queue_name = queue_name
-    inputs.queue_priority = queue_priority
     inputs.run_script_string = run_script_string
     inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
@@ -666,7 +648,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
     # Create local variables
     queue_name = inputs.queue_name
     job_name = inputs.job_name
-    queue_priority = inputs.queue_priority
     out_of_hours = inputs.out_of_hours
     wall_time = inputs.wall_time
     email = inputs.email
@@ -738,8 +719,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
 #PBS -o queue_output/{start_time}.output
 #PBS -e queue_output/{start_time}.error
 #
-# Set priority.
-#PBS -p {queue_priority}
 
 
 {email_string}
@@ -807,7 +786,6 @@ fi
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
-            queue_priority=queue_priority,
             email_string=email_string,
             out_of_hours_string=out_of_hours_string,
             end_time=end_time
@@ -861,11 +839,6 @@ def test_check_inputs():
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['NO', 'no', 'NO', 'No', 'N', 'n']
 
-    queue_priority = {
-        "name": "queue_priority",
-        "valid_data": [1000, "1000", 1023, -1024, 0, -0],
-        "invalid_data": [-2000, "bob", 1024]
-        }
     queue_name = {
         "name": "queue_name",
         "valid_data": ["run"],
@@ -896,7 +869,7 @@ def test_check_inputs():
         }
 
 
-    tests = [queue_priority, queue_name, out_of_hours_string,
+    tests = [queue_name, out_of_hours_string,
              email_option, run_script_string, steps]
 
     for test in tests:
