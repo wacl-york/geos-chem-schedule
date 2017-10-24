@@ -50,7 +50,7 @@ class GET_INPUTS:
         email_option:           "yes"           - Do you want an email upon completion?
         email_address:          "example@example.com" - Address to send emails to
         email_setting:          "e"             - Email on exit? google PBS email for more
-        memory_need:            "10gb"          - Maximum memory you will need"
+        memory_need:            "16gb"          - Maximum memory you will need"
     """
 
     def __init__(self):
@@ -70,7 +70,7 @@ class GET_INPUTS:
         self.email_option = "yes"
         self.email_address = "example@example.com"
         self.email_setting = "e"
-        self.memory_need = "10gb"
+        self.memory_need = "16gb"
         self.run_script = False
         self.out_of_hours = False
         self.email = False
