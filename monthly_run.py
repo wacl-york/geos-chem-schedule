@@ -42,7 +42,6 @@ class GET_INPUTS:
         attribute:              default         - description
         job_name:               GEOS            - Name of the job to appear in qstat
         step:                   month           - Time of the split chunks
-        queue_name:             run             - Name of the queue to submit too
         run_script_string:      yes             - Do you want to run the script immediately
         out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
         wall_time:              "2:00:00"       - How long will a chunk take (overestimate)
@@ -61,7 +60,6 @@ class GET_INPUTS:
         # set defaults
         self.job_name = "GEOS"
         self.step = "month"
-#        self.queue_name = "run"
         self.run_script_string = "yes"
 #        self.out_of_hours_string = "no"
         self.wall_time = "2:00:00"
@@ -181,14 +179,12 @@ def check_inputs(inputs, debug=False):
     Output: inputs(dictionary)
     """
     # Set variables from inputs
-    queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
     email_option = inputs.email_option
     wall_time = inputs.wall_time
     step = inputs.step
 
-    queue_names = ['run', 'large']
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
     steps = ["month", "week", "day"]
@@ -197,10 +193,6 @@ def check_inputs(inputs, debug=False):
         "Unrecognised step size.",
         "try one of {steps}",
         ).format(steps=steps)
-
-    assert (queue_name in queue_names), str(
-        "Unrecognised queue type: {queue_name}"
-        ).format(queue_name=queue_name)
 
     assert ((out_of_hours_string in yess) or (out_of_hours_string in nooo)), str(
         "Unrecognised option for out of hours.",
@@ -300,8 +292,6 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.job_name = (arg[11:].strip())[:9]
             elif arg.startswith("--step="):
                 inputs.step = arg[7:].strip()
-            elif arg.startswith("--queue-name="):
-                inputs.queue_name = arg[13:].strip()
             elif arg.startswith("--submit="):
                 inputs.run_script_string = arg[9:].strip()
             elif arg.startswith("--out-of-hours="):
@@ -354,7 +344,6 @@ def get_variables_from_cli(inputs):
     """
     # Set variables from inputs
     job_name = inputs.job_name
-    queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
     wall_time = inputs.wall_time
@@ -376,13 +365,6 @@ def get_variables_from_cli(inputs):
     input = str(raw_input('DEFAULT = ' + step + ' :\n'))
     if input:
         step = input
-
-    # Choose the queue
-    clear_screen()
-    print("What queue do you want to go in?\n")
-    input = str(raw_input('DEFAULT = ' + queue_name + ' :\n'))
-    if input:
-        queue_name = input
 
     # Check for out of hours run
     clear_screen()
@@ -421,7 +403,6 @@ def get_variables_from_cli(inputs):
 
     # Update input variables
     inputs.job_name = job_name
-    inputs.queue_name = queue_name
     inputs.run_script_string = run_script_string
     inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
@@ -646,7 +627,6 @@ def create_new_input_file(start_time, end_time, input_file):
 def create_the_queue_files(times, inputs, debug=DEBUG):
     """ """
     # Create local variables
-    queue_name = inputs.queue_name
     job_name = inputs.job_name
     out_of_hours = inputs.out_of_hours
     wall_time = inputs.wall_time
@@ -707,7 +687,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
             """#!/bin/bash
 #PBS -j oe
 #PBS -V
-#PBS -q {queue_name}
 #     ncpus is number of hyperthreads - the number of physical core is half of that
 #
 #PBS -N {job_name}
@@ -781,7 +760,6 @@ fi
 
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
-            queue_name=queue_name,
             job_name=(job_name + start_time)[:14], # job name can only be 15 characters
             start_time=start_time,
             wall_time=wall_time,
@@ -839,11 +817,6 @@ def test_check_inputs():
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['NO', 'no', 'NO', 'No', 'N', 'n']
 
-    queue_name = {
-        "name": "queue_name",
-        "valid_data": ["run"],
-        "invalid_data": ["bob"]
-        }
     out_of_hours_string = {
         "name": "out_of_hours_string",
         "valid_data": yess + nooo,
@@ -869,7 +842,7 @@ def test_check_inputs():
         }
 
 
-    tests = [queue_name, out_of_hours_string,
+    tests = [out_of_hours_string,
              email_option, run_script_string, steps]
 
     for test in tests:
