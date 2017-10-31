@@ -375,7 +375,7 @@ def get_variables_from_cli(inputs):
     # Name the queue
     clear_screen()
     print('What name do you want in the queue?\n', \
-    '(Will truncate to 9 charicters).\n')
+    '(Will truncate to 9 characters).\n')
     input = str(raw_input('DEFAULT = ' + job_name + ' :\n'))
     if input:
         job_name = input
