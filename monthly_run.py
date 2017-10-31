@@ -337,8 +337,8 @@ def get_arguments(inputs, debug=DEBUG):
             """)
         else:
             print ("""Invalid argument {arg}
-                     Try --help for more info."""
-                  ).format(arg=arg)
+                     Try --help for more info.""".format(arg=arg)
+                  )
     else:
         inputs = get_variables_from_cli(inputs)
     return inputs
