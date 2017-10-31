@@ -339,6 +339,7 @@ def get_arguments(inputs, debug=DEBUG):
             print ("""Invalid argument {arg}
                      Try --help for more info.""".format(arg=arg)
                   )
+            sys.exit(2)
     else:
         inputs = get_variables_from_cli(inputs)
     return inputs
