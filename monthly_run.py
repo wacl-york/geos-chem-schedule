@@ -644,7 +644,6 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
         # Setup queue file string
         queue_file_string = (
             """#!/bin/bash
-#$ -j oe
 #$ -V
 #$ -N {job_name}
 #$ -r n
@@ -681,7 +680,7 @@ chmod 775 exit_geos.sh
 
 rm -f input.geos
 ln -s input_files/{start_time}.input.geos input.geos
-./geos > logs/{start_time}.geos.log
+./geos > logs/{start_time}.geos.log 2>&1
 
 # Prepend the files with the date
 mv ctm.bpch {start_time}.ctm.bpch
