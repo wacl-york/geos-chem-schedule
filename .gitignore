@@ -13,6 +13,7 @@ input_files
 queue_files
 run_geos.sh
 exit_geos.sh
+setup_geos_environment.sh
 
 # swap
 [._]*.s[a-v][a-z]

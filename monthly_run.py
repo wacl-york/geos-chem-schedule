@@ -130,6 +130,20 @@ def run_completion_script():
     """
     return
 
+def check_for_environment_script():
+    """
+    Check for the existence of a setup_geos_environment.sh script in the working
+    directory. If it doesn't exist, advise and exit.
+    """
+    if not os.path.isfile("setup_geos_environment.sh"):
+        print("\nNo setup_geos_environment.sh found in working directory...\n\n",
+              "You can get this script from:\n\n",
+              "https://github.com/wacl-york/geos_chem_yarcc\n\n",
+              "Select the script suitable for the version of GEOS-Chem that you are running, place",
+              " it in the GEOS-Chem run directory and rename it to 'setup_geos_environment.sh'.\n"
+             )
+        sys.exit(1)
+
 # --------------------------------------------------------------
 # Nothing below here should need changing, but feel free to look.
 
@@ -137,6 +151,9 @@ def main(debug=DEBUG):
     """
     Run monthly_run
     """
+    # Check for setup_geos_environment.sh:
+    check_for_environment_script()
+
     # Get the default inputs as a class
     inputs = GET_INPUTS()
 
@@ -651,10 +668,7 @@ mkdir -p queue_files
 set -x
 #
 #
-export F_UFMTENDIAN=big
-export OMP_STACKSIZE=500m
-export FORT_BUFFERED=true
-
+source "setup_geos_environment.sh"
 
 # Change to the directory that the command was issued from
 echo running in $(pwd) > logs/log.log
