@@ -644,16 +644,13 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
         # Setup queue file string
         queue_file_string = (
             """#!/bin/bash
-#$ -V
+#$ -cwd -V
 #$ -N {job_name}
-#$ -r n
 #$ -l h_rt={wall_time}
-#$ -l h_vmem={memory_need}
+#$ -l h_vmem={memory_need}G
 #$ -pe smp 16
-#$ -cwd
 #$ -o queue_output/{start_time}.output
 #$ -e queue_output/{start_time}.error
-#
 
 {email_string}
 
