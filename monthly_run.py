@@ -485,9 +485,9 @@ def get_start_and_end_dates():
     """
     input_geos = open('input.geos', 'r')
     for line in input_geos:
-        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+        if line.startswith("Start YYYYMMDD"):
             start_date = line[26:34]
-        if line.startswith("End   YYYYMMDD, HHMMSS  :"):
+        if line.startswith("End   YYYYMMDD"):
             end_date = line[26:34]
 
     # Error checking though print...
