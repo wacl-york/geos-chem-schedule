@@ -606,11 +606,11 @@ def create_the_input_files(times, debug=False):
 #
 #        for line in input_geos:
 #
-#            if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+#            if line.startswith("Start YYYYMMDD"):
 #                newline = line[:26] + str(start_time) + line[34:]
 #                output_file.write(newline)
 #                # Confirm the run starts on the first of the time
-#            elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
+#            elif line.startswith("End   YYYYMMDD"):
 #                newline = line[:26] + str(end_time) + line[34:]
 #                output_file.write(newline)
 #            # Force CSPEC on
@@ -644,10 +644,10 @@ def create_new_input_file(start_time, end_time, input_file):
 
     # Change the lines that need changing by reading their start date
     for line in input_file:
-        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+        if line.startswith("Start YYYYMMDD"):
             newline = line[:26] + str(start_time) + line[34:]
             # Confirm the run starts on the first of the time
-        elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
+        elif line.startswith("End   YYYYMMDD"):
             newline = line[:26] + str(end_time) + line[34:]
         # Force CSPEC on
         elif line.startswith("Read and save CSPEC_FULL:"):
@@ -956,8 +956,8 @@ def test_get_start_and_end_dates():
     "Test the retreval of the start date and end date"
     # Make a test file
     with open("input.geos", "w") as input_file:
-        input_file.write("Start YYYYMMDD, HHMMSS  : 20100102 123456\n")
-        input_file.write("End   YYYYMMDD, HHMMSS  : 20110102 123456")
+        input_file.write("Start YYYYMMDD, hhmmss  : 20100102 123456\n")
+        input_file.write("End   YYYYMMDD, hhmmss  : 20110102 123456")
 
     start_time, end_time = get_start_and_end_dates()
     assert start_time == "20100102"
@@ -1014,16 +1014,16 @@ def test_create_new_input_file():
         "start_time": "20130601",
         "end_time": "20130608",
         "input_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
+            "Start YYYYMMDD, hhmmss  : 20120101 000000\n",
+            "End   YYYYMMDD, hhmmss  : 20120109 000000\n",
             "Read and save CSPEC_FULL: f\n",
             "Schedule output for JAN : 3000000000000000000000000000000\n",
             "Schedule output for JUL : 3000000000000000000000000000000\n",
             "Schedule output for JUN : 300000000000000000000000000000\n",
         ],
         "output_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
+            "Start YYYYMMDD, hhmmss  : 20130601 000000\n",
+            "End   YYYYMMDD, hhmmss  : 20130608 000000\n",
             "Read and save CSPEC_FULL: T\n",
             "Schedule output for JAN : 0000000000000000000000000000000\n",
             "Schedule output for JUL : 0000000000000000000000000000000\n",
