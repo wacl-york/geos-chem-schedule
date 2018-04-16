@@ -1,4 +1,4 @@
-#!/usr/local/anaconda/bin/python
+#!/usr/bin/env python
 """
 A script to split up long GEOS-Chem jobs on Earth0 into shorter runs.
 This allows fitting in smaller queues and fairer access.
@@ -50,7 +50,7 @@ class GET_INPUTS:
         email_option:           "yes"           - Do you want an email upon completion?
         email_address:          "example@example.com" - Address to send emails to
         email_setting:          "e"             - Email on exit? google PBS email for more
-        memory_need:            "10gb"          - Maximum memory you will need"
+        memory_need:            "16gb"          - Maximum memory you will need"
     """
 
     def __init__(self):
@@ -70,7 +70,7 @@ class GET_INPUTS:
         self.email_option = "yes"
         self.email_address = "example@example.com"
         self.email_setting = "e"
-        self.memory_need = "10gb"
+        self.memory_need = "16gb"
         self.run_script = False
         self.out_of_hours = False
         self.email = False
@@ -140,15 +140,15 @@ def run_completion_script():
 # --------------------------------------------------------------
 # Nothing below here should need changing, but feel free to look.
 
-def main( debug=DEBUG ):
-    """ 
-    Run monthly_run 
+def main(debug=DEBUG):
+    """
+    Run monthly_run
     """
     # Get the default inputs as a class
     inputs = GET_INPUTS()
 
     # Get the arguments from the command line or UI.
-    inputs = get_arguments( inputs, debug=DEBUG)
+    inputs = get_arguments(inputs, debug=DEBUG)
 
     # Check all the inputs are valid.
     inputs = check_inputs(inputs, debug=DEBUG)
@@ -157,7 +157,7 @@ def main( debug=DEBUG ):
     start_date, end_date = get_start_and_end_dates()
 
     # Calculate the list of months.
-    times = list_of_times_to_run( start_date, end_date, inputs )
+    times = list_of_times_to_run(start_date, end_date, inputs)
 
     # Make a backup of the input.geos file.
     backup_the_input_file()
@@ -191,7 +191,7 @@ def check_inputs(inputs, debug=False):
     wall_time = inputs.wall_time
     step = inputs.step
 
-    queue_names = ['core16', 'core32', 'core64', 'batch', 'run']
+    queue_names = ['run', 'large']
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
     steps = ["month", "week", "day"]
@@ -269,26 +269,26 @@ def setup_script():
     """
 
     print("\n",
-    "Monthly run setup complete. Change your default settings in settings.json\n",
-    "To run the script from anywhere with the monthly_run command,",
-    "copy the following code into your terminal. \n")
+          "Monthly run setup complete. Change your default settings in settings.json\n",
+          "To run the script from anywhere with the monthly_run command,",
+          "copy the following code into your terminal. \n")
 
     script_location = os.path.realpath(__file__)
     # make sure the script is excecutable
-    print( "chmod 755 {script}".format(script=script_location) )
+    print("chmod 755 {script}".format(script=script_location))
     # Make sure there is a ~/bin file
-    print( "mkdir -p $HOME/bin" )
+    print("mkdir -p $HOME/bin")
     # Create a symlink from the file to the bin
-    print( "ln -s {script} $HOME/bin/monthly_run".format(script=script_location) )
+    print("ln -s {script} $HOME/bin/monthly_run".format(script=script_location))
     # Make sure the ~/bin is in the bashrc
     #with open('$HOME/.bashrc','a') as bashrc:
     #        bashrc.write('## Written by monthly_run')
     #        bashrc.write('export PATH=$PATH:$HOME/bin')
-    print( 'echo "## Written by monthly_run" >> $HOME/.bashrc' )
-    print( 'echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc' )
+    print('echo "## Written by monthly_run" >> $HOME/.bashrc')
+    print('echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc')
     # source the bashrc
-    print( "source $HOME/.bashrc" )
-    print( "\n" )
+    print("source $HOME/.bashrc")
+    print("\n")
     sys.exit()
 
 
@@ -297,29 +297,30 @@ def get_arguments(inputs, debug=DEBUG):
     Get the arguments supplied from command line
     """
     # If there are no arguments then run the GUI
-    if len(sys.argv)>1:
-      for arg in sys.argv:
-         if "monthly-run" in arg: continue
-         if arg.startswith("--setup"):
-            setup_script()
-         elif arg.startswith("--job-name="):
-            inputs.job_name = (arg[11:].strip())[:9]
-         elif arg.startswith("--step="):
-            inputs.step = arg[7:].strip()
-         elif arg.startswith("--queue-name="):
-            inputs.queue_name = arg[13:].strip()
-         elif arg.startswith("--queue-priority="):
-            inputs.queue_priority = arg[17:].strip()
-         elif arg.startswith("--submit="):
-            inputs.run_script_string = arg[9:].strip()
-         elif arg.startswith("--out-of-hours="):
-            inputs.out_of_hours_string = arg[15:].strip() 
-         elif arg.startswith("--wall-time="):
-            inputs.wall_time = arg[12:].strip()
-         elif arg.startswith("--memory-need="):
-            inputs.wall_time = arg[14:].strip() 
-         elif arg.startswith("--help"):
-            print("""
+    if len(sys.argv) > 1:
+        for arg in sys.argv:
+            if "monthly-run" in arg:
+                continue
+            if arg.startswith("--setup"):
+                setup_script()
+            elif arg.startswith("--job-name="):
+                inputs.job_name = (arg[11:].strip())[:9]
+            elif arg.startswith("--step="):
+                inputs.step = arg[7:].strip()
+            elif arg.startswith("--queue-name="):
+                inputs.queue_name = arg[13:].strip()
+            elif arg.startswith("--queue-priority="):
+                inputs.queue_priority = arg[17:].strip()
+            elif arg.startswith("--submit="):
+                inputs.run_script_string = arg[9:].strip()
+            elif arg.startswith("--out-of-hours="):
+                inputs.out_of_hours_string = arg[15:].strip()
+            elif arg.startswith("--wall-time="):
+                inputs.wall_time = arg[12:].strip()
+            elif arg.startswith("--memory-need="):
+                inputs.wall_time = arg[14:].strip()
+            elif arg.startswith("--help"):
+                print("""
             monthly-run.py
 
             For UI run without arguments
@@ -334,10 +335,11 @@ def get_arguments(inputs, debug=DEBUG):
             --memory-need=
             e.g. to set the queue name to 'bob' write --queue-name=bob
             """)
-         else:
-             print ("""Invalid argument {arg}
-                     Try --help for more info."""
-                     ).format(arg=arg)
+        else:
+            print ("""Invalid argument {arg}
+                     Try --help for more info.""".format(arg=arg)
+                  )
+            sys.exit(2)
     else:
         inputs = get_variables_from_cli(inputs)
     return inputs
@@ -363,7 +365,7 @@ def get_variables_from_cli(inputs):
     # Set variables from inputs
     job_name = inputs.job_name
     queue_priority = inputs.queue_priority
-    queue_name  = inputs.queue_name
+    queue_name = inputs.queue_name
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
     wall_time = inputs.wall_time
@@ -372,60 +374,68 @@ def get_variables_from_cli(inputs):
 
     # Name the queue
     clear_screen()
-    print( 'What name do you want in the queue?\n', \
-    '(Will truncate to 9 charicters).\n')
-    input = str(raw_input( 'DEFAULT = ' + job_name + ' :\n'))
-    if (len(input) != 0): job_name = input
+    print('What name do you want in the queue?\n', \
+    '(Will truncate to 9 characters).\n')
+    input = str(raw_input('DEFAULT = ' + job_name + ' :\n'))
+    if input:
+        job_name = input
 
     # Specify the step size
     clear_screen()
-    print( 'What time step size do you want?\n', \
+    print('What time step size do you want?\n', \
         '(month recommended for 4x5, 2x25. week or day available).\n')
-    input = str(raw_input( 'DEFAULT = ' + step + ' :\n'))
-    if (len(input) != 0): step = input
+    input = str(raw_input('DEFAULT = ' + step + ' :\n'))
+    if input:
+        step = input
 
     # Give the job a priority
     clear_screen()
     print("What queue priority do you want? (Between -1024 and 1023).\n")
-    input = str(raw_input( 'DEFAULT = ' + queue_priority + ' :\n'))
-    if (len(input) != 0): queue_priority = input
+    input = str(raw_input('DEFAULT = ' + queue_priority + ' :\n'))
+    if input:
+        queue_priority = input
 
     # Choose the queue
     clear_screen()
-    print( "What queue do you want to go in?\n" )
-    input = str(raw_input( 'DEFAULT = ' + queue_name + ' :\n'))
-    if (len(input) != 0): queue_name = input
+    print("What queue do you want to go in?\n")
+    input = str(raw_input('DEFAULT = ' + queue_name + ' :\n'))
+    if input:
+        queue_name = input
 
     # Check for out of hours run
     clear_screen()
-    print( "Do you only want to run jobs out of normal work hours?\n" \
+    print("Do you only want to run jobs out of normal work hours?\n" \
         "(Monday to Friday 9am - 5pm)?\n")
     input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
-    if (len(input) != 0): out_of_hours_string = input
+    if input:
+        out_of_hours_string = input
 
-    # Set the walltime for the run   
+    # Set the walltime for the run
     clear_screen()
-    print( "How long does it take to run a month (HH:MM:SS)?\n",
-        "Be generous! if the time is too short your\n"
-        "job will get deleted (Max = 48 hours)\n")
-    input = str(raw_input( 'DEFAULT = ' + wall_time + ' :\n'))
-    if (len(input) != 0): wall_time = input
+    print("How long does it take to run a month (HH:MM:SS)?\n",
+          "Be generous! if the time is too short your\n"
+          "job will get deleted (Max = 48 hours)\n")
+    input = str(raw_input('DEFAULT = ' + wall_time + ' :\n'))
+    if input:
+        wall_time = input
 
-    # Set the memory requirements for the run 
+    # Set the memory requirements for the run
     clear_screen()
-    print( "How much memory does your run need?\n"
-        "Lower amounts may increase priority.\n"
-        "Example 4gb, 200mb, 200000kb.\n" )
-    input = str(raw_input( 'DEFAULT = ' + memory_need + ' :\n'))
-    if (len(input) != 0): memory_need = input
+    print("How much memory does your run need?\n"
+          "Lower amounts may increase priority.\n"
+          "Example 4gb, 200mb, 200000kb.\n")
+    input = str(raw_input('DEFAULT = ' + memory_need + ' :\n'))
+    if input:
+        memory_need = input
 
     # Run script check
     clear_screen()
-    print( "Do you want to run the script now?\n")
-    input = str(raw_input( 'DEFAULT = ' + run_script_string + ' :\n'))
-    if (len(input) != 0): run_script_string = input
+    print("Do you want to run the script now?\n")
+    input = str(raw_input('DEFAULT = ' + run_script_string + ' :\n'))
+    if input:
+        run_script_string = input
 
-    clear_screen()   
+    clear_screen()
 
     # Update input variables
     inputs.job_name = job_name
@@ -475,9 +485,9 @@ def get_start_and_end_dates():
     """
     input_geos = open('input.geos', 'r')
     for line in input_geos:
-        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+        if line.startswith("Start YYYYMMDD"):
             start_date = line[26:34]
-        if line.startswith("End   YYYYMMDD, HHMMSS  :"):
+        if line.startswith("End   YYYYMMDD"):
             end_date = line[26:34]
 
     # Error checking though print...
@@ -581,10 +591,10 @@ def create_the_input_files(times, debug=False):
 
     for time in times:
         end_time = time
-        if (time == times[0]):
+        if time == times[0]:
             start_time = time
             continue
-      
+
         time_input_file_location = os.path.join(_dir, (start_time+".input.geos"))
 
         new_input_geos = create_new_input_file(start_time, end_time, input_geos)
@@ -592,26 +602,26 @@ def create_the_input_files(times, debug=False):
         with open(time_input_file_location, 'w') as output_file:
             output_file.writelines(new_input_geos)
 
-#      
+#
 #
 #        for line in input_geos:
 #
-#            if line.startswith("Start YYYYMMDD, HHMMSS  :"):
-#                newline = line[:26] + str(start_time) + line[34:] 
+#            if line.startswith("Start YYYYMMDD"):
+#                newline = line[:26] + str(start_time) + line[34:]
 #                output_file.write(newline)
 #                # Confirm the run starts on the first of the time
-#            elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
-#                newline = line[:26] + str(end_time) + line[34:] 
+#            elif line.startswith("End   YYYYMMDD"):
+#                newline = line[:26] + str(end_time) + line[34:]
 #                output_file.write(newline)
 #            # Force CSPEC on
 #            elif line.startswith("Read and save CSPEC_FULL:"):
-#                newline = line[:26] + 'T \n' 
+#                newline = line[:26] + 'T \n'
 #                output_file.write(newline)
 #            # Make sure write at end on a 3
 #            elif line.startswith("Schedule output for"):
 #                newline = update_output_line( line, end_time )
 #                output_file.write(newline)
-#            else: 
+#            else:
 #                newline = line
 #                output_file.write(newline)
 #        output_file.close()
@@ -634,10 +644,10 @@ def create_new_input_file(start_time, end_time, input_file):
 
     # Change the lines that need changing by reading their start date
     for line in input_file:
-        if line.startswith("Start YYYYMMDD, HHMMSS  :"):
+        if line.startswith("Start YYYYMMDD"):
             newline = line[:26] + str(start_time) + line[34:]
             # Confirm the run starts on the first of the time
-        elif line.startswith("End   YYYYMMDD, HHMMSS  :"):
+        elif line.startswith("End   YYYYMMDD"):
             newline = line[:26] + str(end_time) + line[34:]
         # Force CSPEC on
         elif line.startswith("Read and save CSPEC_FULL:"):
@@ -652,7 +662,7 @@ def create_new_input_file(start_time, end_time, input_file):
 
 
 
-def create_the_queue_files(times, inputs, debug=DEBUG ):
+def create_the_queue_files(times, inputs, debug=DEBUG):
     """ """
     # Create local variables
     queue_name = inputs.queue_name
@@ -663,12 +673,12 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
     email = inputs.email
     email_address = inputs.email_address
     email_setting = inputs.email_setting
-    memory_need   = inputs.memory_need
+    memory_need = inputs.memory_need
 
-    # Create folder queue files 
+    # Create folder queue files
     _dir = os.path.dirname("queue_files/")
     if not os.path.exists(_dir):
-        os.makedirs(_dir)     
+        os.makedirs(_dir)
 
     # Modify the input files to have the correct start months
     for time in times:
@@ -679,22 +689,22 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
 
         # Make the out of hours string if only running out of hours
         if out_of_hours:
-             out_of_hours_string = (
- """
- if ! ( $out_of_hours_overide ); then                                            
-    if $out_of_hours ; then                                                      
+            out_of_hours_string = (
+                """
+ if ! ( $out_of_hours_overide ); then
+    if $out_of_hours ; then
        if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
-          job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)   
-          echo $job_number                                                       
-          echo qdel $job_numner > exit_geos.sh                                   
+          job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)
+          echo $job_number
+          echo qdel $job_number > exit_geos.sh
           echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
-          echo $(date)>>logs/log.log                                             
-          exit 1                                                                 
-       fi                                                                        
-    fi                                                                           
- fi  
+          echo $(date)>>logs/log.log
+          exit 1
+       fi
+    fi
+ fi
  """
-             ).format(start_time=start_time)
+            ).format(start_time=start_time)
         else:
             out_of_hours_string = "\n"
 
@@ -702,19 +712,19 @@ def create_the_queue_files(times, inputs, debug=DEBUG ):
         # TODO - add an option to always send email when run finishes? 
         # or if run finishes without a success code?
         if email and (time == times[-1]):
-                email_string = (
-"""
+            email_string = (
+                """
 #PBS -m {email_setting}
 #PBS -M {email_address}
 """
                 ).format(email_setting=email_setting,
-                        email_address=email_address)
+                         email_address=email_address)
         else:
             email_string = "\n"
 
-        # Setup queue file string     
+        # Setup queue file string
         queue_file_string = (
-"""#!/bin/bash
+            """#!/bin/bash
 #PBS -j oe
 #PBS -V
 #PBS -q {queue_name}
@@ -743,7 +753,7 @@ mkdir -p queue_output
 mkdir -p logs
 mkdir -p queue_files
 
-# Set environment variables      
+# Set environment variables
 #
 set -x
 #
@@ -774,7 +784,7 @@ chmod 775 exit_geos.sh
 
 rm -f input.geos
 ln -s input_files/{start_time}.input.geos input.geos
-/opt/sgi/mpt/mpt-2.09/bin/omplace ./geos > logs/{start_time}.geos.log
+/opt/hpe/hpc/mpt/mpt-2.16/bin/omplace ./geos > logs/{start_time}.geos.log
 
 # Prepend the files with the date
 mv ctm.bpch {start_time}.ctm.bpch
@@ -946,8 +956,8 @@ def test_get_start_and_end_dates():
     "Test the retreval of the start date and end date"
     # Make a test file
     with open("input.geos", "w") as input_file:
-        input_file.write("Start YYYYMMDD, HHMMSS  : 20100102 123456\n")
-        input_file.write("End   YYYYMMDD, HHMMSS  : 20110102 123456")
+        input_file.write("Start YYYYMMDD, hhmmss  : 20100102 123456\n")
+        input_file.write("End   YYYYMMDD, hhmmss  : 20110102 123456")
 
     start_time, end_time = get_start_and_end_dates()
     assert start_time == "20100102"
@@ -1004,16 +1014,16 @@ def test_create_new_input_file():
         "start_time": "20130601",
         "end_time": "20130608",
         "input_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20120101 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20120109 000000\n",
+            "Start YYYYMMDD, hhmmss  : 20120101 000000\n",
+            "End   YYYYMMDD, hhmmss  : 20120109 000000\n",
             "Read and save CSPEC_FULL: f\n",
             "Schedule output for JAN : 3000000000000000000000000000000\n",
             "Schedule output for JUL : 3000000000000000000000000000000\n",
             "Schedule output for JUN : 300000000000000000000000000000\n",
         ],
         "output_lines": [
-            "Start YYYYMMDD, HHMMSS  : 20130601 000000\n",
-            "End   YYYYMMDD, HHMMSS  : 20130608 000000\n",
+            "Start YYYYMMDD, hhmmss  : 20130601 000000\n",
+            "End   YYYYMMDD, hhmmss  : 20130608 000000\n",
             "Read and save CSPEC_FULL: T\n",
             "Schedule output for JAN : 0000000000000000000000000000000\n",
             "Schedule output for JUL : 0000000000000000000000000000000\n",

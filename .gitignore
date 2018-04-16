@@ -1,3 +1,65 @@
+################################################################################
+# .gitignore
+#-------------------------------------------------------------------------------
+# Ignore various files that we don't want in the history.
+################################################################################
 *.pyc
 monthly-run.cfg
 settings.json
+monthly_run_env
+input.geos
+input.geos.orig
+input_files
+queue_files
+run_geos.sh
+
+# swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+
+# session
+Session.vim
+
+# temporary
+.netrwhist
+*~
+
+# auto-generated tag files
+tags
+
+# compiled source 
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# logs and databases 
+*.log
+*.sql
+*.sqlite
+
+# OS generated files 
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# aspell
+*.bak
