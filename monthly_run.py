@@ -50,6 +50,7 @@ class GET_INPUTS:
         email_option:           "yes"           - Do you want an email upon completion?
         email_address:          "example@example.com" - Address to send emails to
         email_setting:          "e"             - Email on exit? google PBS email for more
+        ncpu_need:              "16"            - Number of CPUs needed
         memory_need:            "16gb"          - Maximum memory you will need"
     """
 
@@ -70,6 +71,7 @@ class GET_INPUTS:
         self.email_option = "yes"
         self.email_address = "example@example.com"
         self.email_setting = "e"
+        self.ncpu_need = "16"
         self.memory_need = "16gb"
         self.run_script = False
         self.out_of_hours = False
@@ -317,8 +319,10 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.out_of_hours_string = arg[15:].strip()
             elif arg.startswith("--wall-time="):
                 inputs.wall_time = arg[12:].strip()
+            elif arg.statswith("--ncpu-need="):
+                inputs.ncpu_need = arg[13:].strip()
             elif arg.startswith("--memory-need="):
-                inputs.wall_time = arg[14:].strip()
+                inputs.memory_need = arg[14:].strip()
             elif arg.startswith("--help"):
                 print("""
             monthly-run.py
@@ -369,6 +373,7 @@ def get_variables_from_cli(inputs):
     run_script_string = inputs.run_script_string
     out_of_hours_string = inputs.out_of_hours_string
     wall_time = inputs.wall_time
+    ncpu_need = inputs.ncpu_need
     memory_need = inputs.memory_need
     step = inputs.step
 
@@ -419,6 +424,13 @@ def get_variables_from_cli(inputs):
     if input:
         wall_time = input
 
+    # Gather number of CPUs required for the run
+    clear_screen()
+    print("How many CPUs does your run need?\n")
+    input = str(raw_input('DEFAULT = ' + ncpu_need + ' :\n'))
+    if input:
+        ncpu_need = input
+
     # Set the memory requirements for the run
     clear_screen()
     print("How much memory does your run need?\n"
@@ -444,6 +456,7 @@ def get_variables_from_cli(inputs):
     inputs.run_script_string = run_script_string
     inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
+    inputs.ncpu_need = ncpu_need
     inputs.memory_need = memory_need
     inputs.step = step.lower()
     return inputs
@@ -673,6 +686,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
     email = inputs.email
     email_address = inputs.email_address
     email_setting = inputs.email_setting
+    ncpu_need = inputs.ncpu_need
     memory_need = inputs.memory_need
 
     # Create folder queue files
@@ -722,7 +736,11 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
         else:
             email_string = "\n"
 
-        # Setup queue file string
+        # TODO: REWORK THIS
+        # CALCULCATE CHUNK SIZE AND MULTIPLIER:
+
+
+        # Setup queue file string 
         queue_file_string = (
             """#!/bin/bash
 #PBS -j oe
@@ -734,7 +752,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
 #PBS -r n
 #PBS -l walltime={wall_time}
 #PBS -l mem={memory_need}
-#PBS -l nodes=1:ppn=16
+#PBS -l nodes=1:ppn={ncpu_need}
 #
 #PBS -o queue_output/{start_time}.output
 #PBS -e queue_output/{start_time}.error
@@ -807,6 +825,7 @@ fi
             job_name=(job_name + start_time)[:14], # job name can only be 15 characters
             start_time=start_time,
             wall_time=wall_time,
+            ncpu_need=ncpu_need,
             memory_need=memory_need,
             queue_priority=queue_priority,
             email_string=email_string,
