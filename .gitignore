@@ -3,6 +3,10 @@
 #-------------------------------------------------------------------------------
 # Ignore various files that we don't want in the history.
 ################################################################################
+
+Makefile
+geosfp_4x5_benchmark
+
 *.pyc
 monthly-run.cfg
 settings.json
