@@ -16,6 +16,7 @@ from __future__ import print_function
 import subprocess
 import json
 import os
+import re
 import sys
 import shutil
 import datetime
@@ -738,6 +739,16 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
 
         # TODO: REWORK THIS
         # CALCULCATE CHUNK SIZE AND MULTIPLIER:
+        def gcd(x, y):
+            while y != 0:
+                z = y
+                y = x % y
+                x = z
+            return x
+        clean_mem_string = re.sub('[^0-9]', '', memory_need)
+        chunk_multiplier = gcd(int(ncpu_need), int(clean_mem_string))
+        chunk_ncpus = int(ncpu_need) / chunk_multiplier
+        chunk_mem = int(clean_mem_string) / chunk_multiplier
 
 
         # Setup queue file string 
@@ -751,8 +762,8 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
 #PBS -N {job_name}
 #PBS -r n
 #PBS -l walltime={wall_time}
-#PBS -l mem={memory_need}
-#PBS -l nodes=1:ppn={ncpu_need}
+#PBS -l select={chunk_multiplier}:ncpus={chunk_ncpus}:mem={chunk_mem}G
+#PBS -l place=vscatter:shared
 #
 #PBS -o queue_output/{start_time}.output
 #PBS -e queue_output/{start_time}.error
@@ -830,7 +841,10 @@ fi
             queue_priority=queue_priority,
             email_string=email_string,
             out_of_hours_string=out_of_hours_string,
-            end_time=end_time
+            end_time=end_time,
+            chunk_multiplier=chunk_multiplier,
+            chunk_ncpus=chunk_ncpus,
+            chunk_mem=chunk_mem
             )
 
         queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
