@@ -791,7 +791,7 @@ export OMP_WAIT_POLICY=active
 export OMP_DYNAMIC=false
 export OMP_PROC_BIND=true
 
-export OMP_NUM_THREADS=16
+export OMP_NUM_THREADS={omp_num_threads}
 export F_UFMTENDIAN=big
 export MPSTZ=1024M
 export KMP_STACKSIZE=100000000
@@ -844,7 +844,8 @@ fi
             end_time=end_time,
             chunk_multiplier=chunk_multiplier,
             chunk_ncpus=chunk_ncpus,
-            chunk_mem=chunk_mem
+            chunk_mem=chunk_mem,
+            omp_num_threads=ncpu_need
             )
 
         queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
