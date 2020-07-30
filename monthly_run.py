@@ -15,6 +15,7 @@ see "$ monthly_run.py --help" for more information.
 import subprocess
 import json
 import os
+import stat
 import sys
 import shutil
 import datetime
@@ -24,6 +25,8 @@ import pytest
 
 # Master debug switch for main driver
 DEBUG = True
+#Scheduler = 'PBS'
+Scheduler = 'SLURM'
 
 ######
 # To do
@@ -68,6 +71,7 @@ class GET_INPUTS:
         self.email_address = "example@example.com"
         self.email_setting = "e"
         self.memory_need = "20gb"
+        self.cpus_need = '20'
         self.run_script = False
         self.out_of_hours = False
         self.email = False
@@ -143,32 +147,43 @@ def main(debug=DEBUG):
     # Get the default inputs as a class
     inputs = GET_INPUTS()
 
-    # Get the arguments from the command line or UI.
+    # Get the arguments from the command line or UI
     inputs = get_arguments(inputs, debug=DEBUG)
 
-    # Check all the inputs are valid.
+    # Check all the inputs are valid
     inputs = check_inputs(inputs, debug=DEBUG)
 
-    # Check the start and end dates are compatible with the script.
+    # Check the start and end dates are compatible with the script
     start_date, end_date = get_start_and_end_dates()
 
-    # Calculate the list of months.
+    # Calculate the list of times to run the model for
     times = list_of_times_to_run(start_date, end_date, inputs)
 
-    # Make a backup of the input.geos file.
+    # Make a backup of the input.geos file
     backup_the_input_file()
 
-    # Create the individual time input files.
-    create_the_input_files(times)
+    # Create the individual time input files
+    create_the_input_files(times, inputs=inputs)
 
-    # Create the queue files.
-    create_PBS_queue_files(times, inputs, debug=DEBUG)
+    # Create the PBS queue files
+    create_PBS_queue_files(times, inputs=inputs, debug=DEBUG)
 
-    # Create the run script.
+    # Create the SLURM queue files
+    create_SLURM_queue_files(times, inputs=inputs, debug=DEBUG)
+
+    # Create the PSB run script
     create_PBS_run_script(times)
 
-    # Send the script to the queue if wanted.
-    run_the_script(inputs.run_script)
+    # Create the SLURM run script
+    create_SLURM_run_script(times)
+
+    # Send the script to the queue if requested
+    if Scheduler == 'PBS':
+        run_PBS_script(inputs.run_script)
+
+    # Send the script to the queue if requested
+    if Scheduler == 'SLURM':
+        run_SLURM_script(inputs.run_script)
 
     return
 
@@ -176,6 +191,7 @@ def main(debug=DEBUG):
 def check_inputs(inputs, debug=False):
     """
     Make sure all the inputs make sense
+
     Input: inputs(dictionary)
     Output: inputs(dictionary)
     """
@@ -187,7 +203,6 @@ def check_inputs(inputs, debug=False):
     email_option = inputs.email_option
     wall_time = inputs.wall_time
     step = inputs.step
-
     # Earth0 queue names
 #    queue_names = ['run', 'large',]
     # Viking queue names
@@ -197,56 +212,51 @@ def check_inputs(inputs, debug=False):
     ]
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
-    steps = ["6month", "month", "week", "day"]
+    steps = [
+        "12month", "6month", "3month", "2month", "1month",  "month", "week",
+        "day"
+    ]
+    # Check steps string
+    AssStr = "Unrecognised step size {step}.\ntry one of {steps}"
+    assert (step in steps), AssStr.format(step=step, steps=steps)
+    # Check Priority string
+    AssStr = "Priority not between -1024 and 1023. Received {priority}"
+    AssBool = (-1024 <= int(queue_priority) <= 1023)
+    assert AssBool, AssStr.format(priority=queue_priority)
+    # Check Queue type string
+    AssStr = "Unrecognised queue type: {queue_name}\n try one of {}"
+    assert (queue_name in queue_names), AssStr.format(queue_name=queue_name,
+                                                      queue_names=queue_names)
+    # Check out-of-hours queue option string
+    AssStr = "Unrecognised option for out of hours.\nTry one of: {yess} / {nooo}\nThe command given was {run_script_string}"
+    AssBool = ((out_of_hours_string in yess) or (out_of_hours_string in nooo))
+    assert AssBool, AssStr.format(yess=yess, nooo=nooo,
+                                  run_script_string=run_script_string)
+    # Check 'run the script on completion' string
+    AssStr = "Unrecognised option for run the script on completion.\nTry one of: {yess} / {nooo}\nThe command given was: {run_script_string}."
+    AssBool = (run_script_string in yess) or (run_script_string in nooo)
+    assert AssBool, AssStr.format(yess=yess, nooo=nooo,
+                                  run_script_string=run_script_string)
+    # Check email string
+    AssStr = "Email option is neither yes or no. \nPlease check the settings. \nTry one of: {yess} / {nooo}"
+    AssBool = (email_option in yess) or (email_option in nooo)
+    assert AssBool, AssStr.format(yess=yess, nooo=nooo)
 
-    assert (step in steps), str(
-        "Unrecognised step size.",
-        "try one of {steps}",
-    ).format(steps=steps)
-
-    assert (-1024 <= int(queue_priority) <= 1023), str(
-        "Priority not between -1024 and 1023. Received {priority}"
-    ).format(priority=queue_priority)
-
-    assert (queue_name in queue_names), str(
-        "Unrecognised queue type: {queue_name}"
-    ).format(queue_name=queue_name)
-
-    assert ((out_of_hours_string in yess) or (out_of_hours_string in nooo)), str(
-        "Unrecognised option for out of hours.",
-        "Try one of: {yess} / {nooo}",
-        "The command given was {run_script_string}"
-    ).format(yess=yess, nooo=nooo, run_script_string=run_script_string)
-
-    assert (run_script_string in yess) or (run_script_string in nooo), str(
-        "Unrecognised option for run the script on completion.",
-        "Try one of: {yess} / {nooo}",
-        "The command given was: {run_script_string}."
-    ).format(yess=yess, nooo=nooo,
-             run_script_string=run_script_string)
-
-    assert (email_option in yess) or (email_option in nooo), str(
-        "Email option is neither yes or no.",
-        "Please check the settings.",
-        "Try one of: {yess} / {nooo}"
-    ).format(yess=yess, nooo=nooo)
-
-    # Create the logicals
+    # Create the logicals - run the script?
     if run_script_string in yess:
         inputs["run_script"] = True
     elif run_script_string in nooo:
         inputs["run_script"] = False
-
+    # Create the logicals - run only out of hours?
     if out_of_hours_string in yess:
         inputs["out_of_hours"] = True
     elif out_of_hours_string in nooo:
         inputs["out_of_hours"] = False
-
+    # Create the logicals - Send an email?
     if email_option in yess:
         inputs["email"] = True
     elif email_option in nooo:
         inputs["email"] = False
-
     return inputs
 
 
@@ -254,13 +264,10 @@ def backup_the_input_file():
     """
     Save a copy of the origional input file
     """
-
     input_file = "input.geos"
     backup_input_file = "input.geos.orig"
-
     if not os.path.isfile(backup_input_file):
         shutil.copyfile(input_file, backup_input_file)
-
     return
 
 
@@ -268,7 +275,6 @@ def setup_script():
     """
     Creates a symbolic link allowing the use to run "monthly_run" from any folder"
     """
-
     print("\n",
           "Monthly run setup complete. Change your default settings in settings.json\n",
           "To run the script from anywhere with the monthly_run command,",
@@ -372,70 +378,89 @@ def get_variables_from_cli(inputs):
     out_of_hours_string = inputs.out_of_hours_string
     wall_time = inputs.wall_time
     memory_need = inputs.memory_need
+    cpus_need = inputs.cpus_need
     step = inputs.step
 
     # Name the queue
     clear_screen()
     print('What name do you want in the queue?\n',
           '(Will truncate to 9 characters).\n')
-    read_input = str(input('DEFAULT = ' + job_name + ' :\n'))
-    if read_input:
-        job_name = read_input
+    input_read = str(input('DEFAULT = ' + job_name + ' :\n'))
+    if input_read:
+        job_name = input_read
+    del input_read
 
     # Specify the step size
     clear_screen()
-    print('What time step size do you want?\n',
-          '(month recommended for 4x5, 2x25. week or day available).\n')
-    read_input = str(input('DEFAULT = ' + step + ' :\n'))
-    if read_input:
-        step = read_input
+    PrtStr = "What time step size do you want? \n(month recommended for 4x5, 2x25. 6month, 3month, 2month, week or day available).\n"
+    print(PrtStr)
+    input_read = str(input('DEFAULT = ' + step + ' :\n'))
+    if input_read:
+        step = input_read
+    del input_read
 
     # Give the job a priority
     clear_screen()
     print("What queue priority do you want? (Between -1024 and 1023).\n")
-    read_input = str(input('DEFAULT = ' + queue_priority + ' :\n'))
-    if read_input:
-        queue_priority = read_input
+    input_read = str(input('DEFAULT = ' + queue_priority + ' :\n'))
+    if input_read:
+        queue_priority = input_read
+    del input_read
 
     # Choose the queue
     clear_screen()
     print("What queue do you want to go in?\n")
-    read_input = str(input('DEFAULT = ' + queue_name + ' :\n'))
-    if input:
-        queue_name = read_input
+    input_read = str(input('DEFAULT = ' + queue_name + ' :\n'))
+    if input_read:
+        queue_name = input_read
+    del input_read
 
     # Check for out of hours run
     clear_screen()
     print("Do you only want to run jobs out of normal work hours?\n"
           "(Monday to Friday 9am - 5pm)?\n")
-    read_input = str(input('Default = ' + out_of_hours_string + ' :\n'))
-    if read_input:
-        out_of_hours_string = read_input
+    input_read = str(input('Default = ' + out_of_hours_string + ' :\n'))
+    if input_read:
+        out_of_hours_string = input_read
+    del input_read
 
     # Set the walltime for the run
     clear_screen()
     print("How long does it take to run a month (HH:MM:SS)?\n",
           "Be generous! if the time is too short your\n"
           "job will get deleted (Max = 48 hours)\n")
-    read_input = str(input('DEFAULT = ' + wall_time + ' :\n'))
-    if read_input:
-        wall_time = read_input
+    input_read = str(input('DEFAULT = ' + wall_time + ' :\n'))
+    if input_read:
+        wall_time = input_read
+    del input_read
 
     # Set the memory requirements for the run
     clear_screen()
     print("How much memory does your run need?\n"
           "Lower amounts may increase priority.\n"
           "Example 4gb, 200mb, 200000kb.\n")
-    read_input = str(input('DEFAULT = ' + memory_need + ' :\n'))
-    if read_input:
-        memory_need = read_input
+    input_read = str(input('DEFAULT = ' + memory_need + ' :\n'))
+    if input_read:
+        memory_need = input_read
+    del input_read
+
+    # Set the CPU requirements for the run
+    clear_screen()
+    print("How many CPUS does your run need?\n"
+          "Lower amounts may increase priority.\n"
+          "Example 5, 15, 20.\n")
+    input_read = str(input('DEFAULT = ' + cpus_need + ' :\n'))
+    if input_read:
+        cpus_need = input_read
+    del input_read
 
     # Run script check
     clear_screen()
     print("Do you want to run the script now?\n")
-    read_input = str(input('DEFAULT = ' + run_script_string + ' :\n'))
-    if read_input:
-        run_script_string = read_input
+    input_read = str(input('DEFAULT = ' + run_script_string + ' :\n'))
+    if input_read:
+        run_script_string = input_read
+    del input_read
 
     clear_screen()
 
@@ -447,6 +472,7 @@ def get_variables_from_cli(inputs):
     inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
     inputs.memory_need = memory_need
+    inputs.cpus_need = cpus_need
     inputs.step = step.lower()
     return inputs
 
@@ -465,18 +491,27 @@ def test_get_variables_from_cli():
     return
 
 
-def run_the_script(run_script):
+def run_PBS_script(run_script):
     """
-    Call the run script with a subprocess command.
+    Call the PBS run script with a subprocess command
     """
     if run_script:
-        subprocess.call(["bash", "run_geos.sh"])
+        subprocess.call(["bash", "run_geos_PBS.sh"])
+    return
+
+
+def run_SLURM_script(run_script):
+    """
+    Call the SLURM run script with a subprocess command
+    """
+    if run_script:
+        subprocess.call(["bash", "run_geos_SLURM.sh"])
     return
 
 
 def clear_screen():
     """
-    Clear the screen of the terminal for the UI.
+    Clear the screen of the terminal for the UI
     """
     os.system('cls' if os.name == 'nt' else 'clear')
     return
@@ -520,6 +555,10 @@ def list_of_times_to_run(start_time, end_time, inputs):
         time_delta = relativedelta(months=6)
     if step == "3month":
         time_delta = relativedelta(months=3)
+    if step == "2month":
+        time_delta = relativedelta(months=2)
+    if step == "1month":
+        time_delta = relativedelta(months=1)
     if step == "month":
         time_delta = relativedelta(months=1)
     elif step == "week":
@@ -540,15 +579,22 @@ def list_of_times_to_run(start_time, end_time, inputs):
     return times
 
 
-def update_output_line(line, end_time):
+def update_output_line(line, end_time, inputs=None):
     """
     Make sure we have a 3 in the end date in input.geos output menu
+
     INPUT:
         line - string pulled from the input file
         end_time - "YYYYMMDD"
     OUTPUT:
         line - string to write to the input file
     """
+    # Retrieve the frequency of output
+    step = inputs.step
+    # if the output is in
+    output_on_1st_of_month = False
+    if 'month' in step.lower():
+        output_on_1st_of_month = True
 
     # Get the name of the month
     _current_month_name = calendar.month_name[int(end_time[4:6])]
@@ -561,7 +607,7 @@ def update_output_line(line, end_time):
     _current_day_of_month = int(end_time[6:8])
     _position = 26+_current_day_of_month
 
-    if line[20:23] == _current_month_name:
+    if (line[20:23] == _current_month_name) or output_on_1st_of_month:
         newline = line[:_position-1] + '3' + line[_position:]
     else:
         newline = line
@@ -575,7 +621,7 @@ def is_current_year_a_leap_year():
     return
 
 
-def create_the_input_files(times, debug=False):
+def create_the_input_files(times, inputs=None, debug=False):
     """
     Create the input files for the run
     INPUT:
@@ -601,11 +647,12 @@ def create_the_input_files(times, debug=False):
             start_time = time
             continue
 
-        time_input_file_location = os.path.join(
-            _dir, (start_time+".input.geos"))
+        time_input_file_location = os.path.join( _dir,
+                                                (start_time+".input.geos")
+                                                )
 
-        new_input_geos = create_new_input_file(
-            start_time, end_time, input_geos)
+        new_input_geos = create_new_input_file(start_time, end_time,
+                                               input_geos, inputs=inputs)
 
         with open(time_input_file_location, 'w') as output_file:
             output_file.writelines(new_input_geos)
@@ -638,9 +685,10 @@ def create_the_input_files(times, debug=False):
     return
 
 
-def create_new_input_file(start_time, end_time, input_file):
+def create_new_input_file(start_time, end_time, input_file, inputs=None):
     """
-    create a new input file based on the passed in open input file.
+    Create a new input file based on the passed in open input file.
+
     INPUTS:
         start_time: YYYYMMSS
         end_time: YYYYMMSS
@@ -663,16 +711,16 @@ def create_new_input_file(start_time, end_time, input_file):
             newline = line[:26] + 'T\n'
         # Make sure write at end on a 3
         elif line.startswith("Schedule output for"):
-            newline = update_output_line(line, end_time)
+            newline = update_output_line(line, end_time, inputs=inputs)
         else:
             newline = line
         new_lines.append(newline)
     return new_lines
 
 
-def create_PBS_queue_files(times, inputs, debug=DEBUG):
+def create_PBS_queue_files(times, inputs=None, debug=DEBUG):
     """
-    Create the queue files for a PBS managed queue (earth0)
+    Create the queue files for a PBS managed queue (York's earth0 HPC)
     """
     # Create local variables
     queue_name = inputs.queue_name
@@ -684,9 +732,10 @@ def create_PBS_queue_files(times, inputs, debug=DEBUG):
     email_address = inputs.email_address
     email_setting = inputs.email_setting
     memory_need = inputs.memory_need
+    cpus_need = inputs.cpus_need
 
     # Create folder queue files
-    _dir = os.path.dirname("queue_files/")
+    _dir = os.path.dirname("PBS_queue_files/")
     if not os.path.exists(_dir):
         os.makedirs(_dir)
 
@@ -704,7 +753,7 @@ def create_PBS_queue_files(times, inputs, debug=DEBUG):
  if ! ( $out_of_hours_overide ); then
     if $out_of_hours ; then
        if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
-          job_number=$(qsub -a 1810 queue_files/{start_time}.pbs)
+          job_number=$(qsub -a 1810 PBS_queue_files/{start_time}.pbs)
           echo $job_number
           echo qdel $job_number > exit_geos.sh
           echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
@@ -731,86 +780,14 @@ def create_PBS_queue_files(times, inputs, debug=DEBUG):
                      email_address=email_address)
         else:
             email_string = "\n"
-
         # Setup queue file string
-        queue_file_string = (
-            """#!/bin/bash
-#PBS -j oe
-#PBS -V
-#PBS -q {queue_name}
-#     ncpus is number of hyperthreads - the number of physical core is half of that
-#
-#PBS -N {job_name}
-#PBS -r n
-#PBS -l walltime={wall_time}
-#PBS -l mem={memory_need}
-#PBS -l nodes=1:ppn=16
-#
-#PBS -o queue_output/{start_time}.output
-#PBS -e queue_output/{start_time}.error
-#
-# Set priority.
-#PBS -p {queue_priority}
-
-
-{email_string}
-
-
-cd $PBS_O_WORKDIR
-
-# Make sure the required dirs exists
-mkdir -p queue_output
-mkdir -p logs
-mkdir -p queue_files
-
-# Set environment variables
-#
-set -x
-#
-#
-export OMP_WAIT_POLICY=active
-export OMP_DYNAMIC=false
-export OMP_PROC_BIND=true
-
-export OMP_NUM_THREADS=16
-export F_UFMTENDIAN=big
-export MPSTZ=1024M
-export KMP_STACKSIZE=100000000
-export KMP_LIBRARY=turnaround
-export FORT_BUFFERED=true
-ulimit -s 200000000
-
-
-{out_of_hours_string}
-
-# Change to the directory that the command was issued from
-echo running in $PBS_O_WORKDIR > logs/log.log
-echo starting on $(date) >> logs/log.log
-
-# Create the exit file
-echo qdel $job_number > exit_geos.sh
-chmod 775 exit_geos.sh
-
-
-rm -f input.geos
-ln -s input_files/{start_time}.input.geos input.geos
-/opt/hpe/hpc/mpt/mpt-2.16/bin/omplace ./geos > logs/{start_time}.geos.log
-
-# Prepend the files with the date
-mv ctm.bpch {start_time}.ctm.bpch
-mv HEMCO.log logs/{start_time}.HEMCO.log
-
-# Only submit the next month if GEOS-Chem completed correctly
-last_line = "$(tail -n1 {start_time}.geos.log)"
-complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
-
-if [ $last_line = $complete_last_line]; then
-   job_number=$(qsub queue_files/{end_time}.pbs)
-   echo $job_number
-fi
-"""
-        )
-
+        script_location = os.path.realpath(__file__)
+        script_dir = os.path.dirname(script_location)
+        script_template_file = 'PBS_queue_script_template'
+        script_template = os.path.join(script_dir, script_template_file)
+        with open(script_template, 'r') as template_file:
+            queue_file_string = [i for i in template_file]
+        queue_file_string = (''.join(queue_file_string))
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
@@ -819,6 +796,7 @@ fi
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
+            cpus_need=cpus_need,
             queue_priority=queue_priority,
             email_string=email_string,
             out_of_hours_string=out_of_hours_string,
@@ -832,24 +810,162 @@ fi
         if time == times[-1]:
             run_completion_script()
         queue_file.close()
+        # Change the permissions so it is executable
+        st = os.stat( queue_file_location )
+        os.chmod( queue_file_location, st.st_mode | stat.S_IEXEC)
+        # Now update the start_time variable
+        start_time = time
+    return
+
+
+def create_SLURM_queue_files(times, inputs=None, debug=DEBUG):
+    """
+    Create the queue files for a SLURM managed queue (e.g. York's viking HPC)
+    """
+    # Create local variables
+    queue_name = inputs.queue_name
+    job_name = inputs.job_name
+    queue_priority = inputs.queue_priority
+    out_of_hours = inputs.out_of_hours
+    wall_time = inputs.wall_time
+    email = inputs.email
+    email_address = inputs.email_address
+    email_setting = inputs.email_setting
+    memory_need = inputs.memory_need
+    cpus_need = inputs.cpus_need
+
+    # Create folder queue files
+    _dir = os.path.dirname("SLURM_queue_files/")
+    if not os.path.exists(_dir):
+        os.makedirs(_dir)
+
+    # Modify the input files to have the correct start months
+    for time in times:
+        end_time = time
+        if time == times[0]:
+            start_time = time
+            continue
+
+        # Make the out of hours string if only running out of hours
+        # TODO - set this up with SLURM
+        if out_of_hours:
+#             out_of_hours_string = (
+#                 """
+#  if ! ( $out_of_hours_overide ); then
+#     if $out_of_hours ; then
+#        if [ $(date +%u) -lt 6 ]  && [ $(date +%H) -gt 8 ] && [ $(date +%H) -lt 17 ] ; then
+#           job_number=$(qsub -a 1810 PBS_queue_files/{start_time}.pbs)
+#           echo $job_number
+#           echo qdel $job_number > exit_geos.sh
+#           echo "Tried running in work hours but we don't want to. Will try again at 1800. The time we attempted to run was:">>logs/log.log
+#           echo $(date)>>logs/log.log
+#           exit 1
+#        fi
+#     fi
+#  fi
+#  """
+#             ).format(start_time=start_time)
+            out_of_hours_string = "\n"
+        else:
+            out_of_hours_string = "\n"
+
+        # Set up email if its the final run and email = True
+        # TODO - add an option to always send email when run finishes?
+        # or if run finishes without a success code?
+        if email and (time == times[-1]):
+#             email_string = (
+#                 """
+# #PBS -m {email_setting}
+# #PBS -M {email_address}
+# """
+#             ).format(email_setting=email_setting,
+#                      email_address=email_address)
+            email_address = email_address
+        else:
+            email_address = "TEST@TEST.com"
+        # Also copy in the hardwired capitalised variables for now
+        slurm_capital_variables = """# CHANGE TO GEOS-Chem run directory, assuming job was submitted from there:
+cd \"${SLURM_SUBMIT_DIR}\" || exit 1
+
+# Set OpenMP thread count to number of cores requested for job:
+export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
+        # Setup queue file string
+        script_location = os.path.realpath(__file__)
+        script_dir = os.path.dirname(script_location)
+        script_template_file = 'SLURM_queue_script_template'
+        script_template = os.path.join(script_dir, script_template_file)
+        with open(script_template, 'r') as template_file:
+            queue_file_string = [i for i in template_file]
+        queue_file_string = (''.join(queue_file_string))
+        # Add all the variables to the string
+        queue_file_string = queue_file_string.format(
+            queue_name=queue_name,
+            # job name can only be 15 characters
+            job_name=(job_name + start_time)[:14],
+            start_time=start_time,
+            wall_time=wall_time,
+            memory_need=memory_need,
+            cpus_need=cpus_need,
+            queue_priority=queue_priority,
+            out_of_hours_string=out_of_hours_string,
+            end_time=end_time,
+            email_address=email_address,
+            slurm_capital_variables=slurm_capital_variables,
+        )
+
+        queue_file_location = os.path.join(_dir, (start_time + ".sbatch"))
+        queue_file = open(queue_file_location, 'w')
+        queue_file.write(queue_file_string)
+        # If this is the final month then run an extra command
+        if time == times[-1]:
+            run_completion_script()
+        queue_file.close()
+        # Change the permissions so it is executable
+        st = os.stat( queue_file_location )
+        os.chmod( queue_file_location, st.st_mode | stat.S_IEXEC)
+        # Now update the start_time variable
         start_time = time
     return
 
 
 def create_PBS_run_script(months):
     """
-    Create the script that can set off the run jobs for rerunning or manual
-    submission.
+    Create the script that can set the run jobs running
+
     Input: months
-    Output: 'run_geos.sh'
+    Output: 'run_PBS_geos.sh'
     """
-    run_script = open('run_geos.sh', 'w')
+    FileName = 'run_geos_PBS.sh'
+    run_script = open(FileName, 'w')
     run_script_string = ("""
 #!/bin/bash
-qsub queue_files/{month}.pbs
+qsub PBS_queue_files/{month}.pbs
      """).format(month=months[0])
     run_script.write(run_script_string)
     run_script.close()
+    # Change the permissions so it is executable
+    st = os.stat( FileName )
+    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
+    return
+
+
+def create_SLURM_run_script(months):
+    """
+    Create the script that can set the run jobs running
+    Input: months
+    Output: 'run_SLURM_geos.sh'
+    """
+    FileName = 'run_geos_SLURM.sh'
+    run_script = open(FileName, 'w')
+    run_script_string = ("""
+#!/bin/bash
+sbatch SLURM_queue_files/{month}.sbatch
+     """).format(month=months[0])
+    run_script.write(run_script_string)
+    run_script.close()
+    # Change the permissions so it is executable
+    st = os.stat( FileName )
+    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
     return
 
 
@@ -879,8 +995,8 @@ def test_check_inputs():
     }
     queue_name = {
         "name": "queue_name",
-        "valid_data": ["run"],
-        "invalid_data": ["bob"]
+        "valid_data": ["nodes"],
+        "invalid_data": ["bob", "run"]
     }
     out_of_hours_string = {
         "name": "out_of_hours_string",
@@ -953,7 +1069,7 @@ def test_check_inputs_steps():
     Test check_inputs() steps
     """
     inputs = GET_INPUTS()
-    for step in ["month", "week", "day"]:
+    for step in ["6month", "month", "week", "day"]:
         inputs.step = step
         check_inputs(inputs)
     with pytest.raises(Exception):

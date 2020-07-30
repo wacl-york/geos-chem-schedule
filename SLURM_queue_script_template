@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+################################################################################
+# GEOS-Chem Classic
+#===============================================================================
+# This file describes a simple GEOS-Chem job on Viking. Many of the SBATCH
+# directives can be left as they are; some will require modification as
+# documented.
+################################################################################
+
+#===============================================================================
+# BEGIN SLURM DIRECTIVES
+#===============================================================================
+#-------------------------------------------------------------------------------
+# ntasks - The number of 'tasks' you wish to run. In our case, we wish to run
+#          a single instance of GEOS-Chem Classic, so this can be left at '1'.
+#-------------------------------------------------------------------------------
+#SBATCH --ntasks=1
+
+#-------------------------------------------------------------------------------
+# cpus-per-task - The number of cores you wish to use for your task. From
+#                 benchmarking and Viking architecture, 20 cores is a sensible
+#                 number of cores to guarantee good model performance.
+#-------------------------------------------------------------------------------
+#SBATCH --cpus-per-task={cpus_need}
+
+#-------------------------------------------------------------------------------
+# mem-per-cpu - The amount of memory to be allocated per core used for your
+#               task. Viking is configured to allow no more than 4.8GB per core
+#               when using this option, and 2GB per core is more than enough
+#               for standard GEOS-Chem runs.
+#-------------------------------------------------------------------------------
+#SBATCH --mem-per-cpu={memory_need}
+
+#-------------------------------------------------------------------------------
+# time - Maximum wallclock time to be consumed by your job, in the format
+#        DAYS-HH:MM:SS. For reference, a month of GEOSFP, 4x5, tropchem takes
+#        roughly 01:30:00.
+#-------------------------------------------------------------------------------
+#SBATCH --time={wall_time}
+
+#-------------------------------------------------------------------------------
+# output - The file for the combined standard output and standard error log.
+#          This can be an absolute path, or a relative path. The example below
+#          uses %x, a special variable containing the name of the job set in the
+#          job-name directive.
+#
+#          Any directory into which logs are being written must exist before
+#          running your job.
+#-------------------------------------------------------------------------------
+#SBATCH --output={job_name}.geos.log
+
+#-------------------------------------------------------------------------------
+# partition - The SLURM partition to use for your job. SLURM partitions are
+#             analogous to queues. The 'nodes' partition is the regular Viking
+#             nodes partition - all nodes in this partition can support a GEOS-
+#             Chem classic run. 
+#-------------------------------------------------------------------------------
+#SBATCH --partition={queue_name}
+
+#-------------------------------------------------------------------------------
+# job-name - The name of your job. This will set the contents of special
+#            variables set and used by SLURM, e.g. the %x variable used in the
+#            output example above.
+#-------------------------------------------------------------------------------
+#SBATCH --job-name={job_name}
+
+#-------------------------------------------------------------------------------
+# mail-user - The email address to which you wish to receive notifcations about
+#             your job.
+#-------------------------------------------------------------------------------
+#SBATCH --mail-user={email_address}
+
+#-------------------------------------------------------------------------------
+# mail-type - The types of notifications you wish to receive about your job. ALL
+#             gives you notifications when your job starts, ends, fails, is
+#             requeued, and some special notifications if you are using the
+#             burst buffer (we are not).
+#-------------------------------------------------------------------------------
+#SBATCH --mail-type=ALL
+
+#-------------------------------------------------------------------------------
+# account - The Viking project account to associate this job with. Evans Group
+#           general project code is 'chem-acm-2018'.
+#-------------------------------------------------------------------------------
+#SBATCH --account=chem-acm-2018
+#===============================================================================
+# END SLURM DIRECTIVES
+#===============================================================================
+
+{slurm_capital_variables}
+
+# Set up GEOS-Chem environment from environment script:
+if ! [[ -f "setup_geos_environment.sh" ]]; then
+  echo "ERROR: UNABLE TO SET UP GEOS-Chem ENVIRONMENT FROM SETUP SCRIPT"
+  echo "ERROR: PLEASE CONFIRM THAT setup_environment.sh EXISTS IN RUN DIRECTORY"
+  exit 1
+fi
+
+source setup_geos_environment.sh
+
+# Make sure the required dirs exists
+mkdir -p queue_output
+mkdir -p logs
+mkdir -p SLURM_queue_files
+
+# Create the exit file
+#echo qdel $job_number > exit_geos.sh
+
+# Ensure all of the SLURM scripts can be run
+chmod 775 SLURM_queue_files/*batch
+
+# Remove the existing input file and submit for month
+rm -f input.geos
+ln -s input_files/{start_time}.input.geos input.geos
+# Run GEOS-Chem
+srun geos
+
+# Only submit the next month if GEOS-Chem completed correctly
+last_line = "$(tail -n1 {job_name}.geos.log)"
+complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
+
+# Move the files with for the compltete output to the Output folder
+# mv ctm.bpch {start_time}.ctm.bpch
+mv HEMCO.log OutputDir/{start_time}.HEMCO.log
+mv {job_name}.geos.log OutputDir/
+
+if [ $last_line = $complete_last_line]; then
+   job_number=$(srun SLURM_queue_files/{end_time}.sbatch)
+   echo $job_number
+fi
