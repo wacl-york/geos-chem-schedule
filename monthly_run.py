@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """
-A script to split up long GEOS-Chem jobs on Earth0 into shorter runs.
-This allows fitting in smaller queues and fairer access.
+A script to split up GEOS-Chem jobs on HPC into shorter runs
 
+
+This allows fitting in smaller queues and fairer access.
 The jobs can call the next job in the sequence meaning you can submit in the
 same way.
  - file name = monthly_run.py
@@ -10,8 +11,6 @@ There are also options that you can either pass as arguments or run a UI
 if no arguments are passed.
 see "$ monthly_run.py --help" for more information.
 """
-
-
 
 import subprocess
 import json
@@ -23,7 +22,6 @@ import calendar
 from dateutil.relativedelta import relativedelta
 import pytest
 
-
 # Master debug switch for main driver
 DEBUG = True
 
@@ -34,23 +32,22 @@ DEBUG = True
 ########
 
 
-
 class GET_INPUTS:
     """
     A class containing all the variables needed
     Attributes:
-        attribute:              default         - description
-        job_name:               GEOS            - Name of the job to appear in qstat
-        step:                   month           - Time of the split chunks
-        queue_priority:         0               - Priority of the job (-1024 to 1023)
-        queue_name:             run             - Name of the queue to submit too
-        run_script_string:      yes             - Do you want to run the script immediately
-        out_of_hours_string:    yes             - Do you only want to run evenings and weekends?
-        wall_time:              "2:00:00"       - How long will a chunk take (overestimate)
-        email_option:           "yes"           - Do you want an email upon completion?
-        email_address:          "example@example.com" - Address to send emails to
-        email_setting:          "e"             - Email on exit? google PBS email for more
-        memory_need:            "16gb"          - Maximum memory you will need"
+        attribute: default   - description
+        job_name: GEOS   - Name of the job to appear in qstat
+        step: month   - Time of the split chunks
+        queue_priority: 0   - Priority of the job (-1024 to 1023)
+        queue_name: nodes   - Name of the queue to submit too
+        run_script_string: yes   - Do you want to run the script immediately
+        out_of_hours_string: yes   - Do you only want to run evenings and weekends?
+        wall_time: "48:00:00"   - How long will a chunk take (overestimate)
+        email_option: "yes"   - Do you want an email upon completion?
+        email_address: "example@example.com"    - Address to send emails to
+        email_setting: "e"   - Email on exit? google PBS email for more
+        memory_need: "20gb"   - Maximum memory you will need"
     """
 
     def __init__(self):
@@ -63,30 +60,26 @@ class GET_INPUTS:
         self.job_name = "GEOS"
         self.step = "month"
         self.queue_priority = "0"
-        self.queue_name = "run"
+        self.queue_name = "nodes"
         self.run_script_string = "yes"
         self.out_of_hours_string = "no"
-        self.wall_time = "2:00:00"
+        self.wall_time = "48:00:00"
         self.email_option = "yes"
         self.email_address = "example@example.com"
         self.email_setting = "e"
-        self.memory_need = "16gb"
+        self.memory_need = "20gb"
         self.run_script = False
         self.out_of_hours = False
         self.email = False
-
 
         if os.path.exists(user_settings_file):
             settings_file = open(user_settings_file, 'r')
             options = json.load(settings_file)
         else:
-
             default = self.variables()
-
             settings_file = open(user_settings_file, 'w')
             json.dump(default, settings_file, sort_keys=True, indent=4)
             settings_file.close()
-
             options = default
 
         self.__dict__.update(options)
@@ -166,10 +159,10 @@ def main(debug=DEBUG):
     create_the_input_files(times)
 
     # Create the queue files.
-    create_the_queue_files(times, inputs, debug=DEBUG)
+    create_PBS_queue_files(times, inputs, debug=DEBUG)
 
     # Create the run script.
-    create_the_run_script(times)
+    create_PBS_run_script(times)
 
     # Send the script to the queue if wanted.
     run_the_script(inputs.run_script)
@@ -191,10 +184,16 @@ def check_inputs(inputs, debug=False):
     wall_time = inputs.wall_time
     step = inputs.step
 
-    queue_names = ['run', 'large']
+    # Earth0 queue names
+#    queue_names = ['run', 'large',]
+    # Viking queue names
+    queue_names = [
+    'interactive', 'month', 'week', 'gpu', 'himem_week', 'himem', 'test',
+    'nodes',
+    ]
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
-    steps = ["month", "week", "day"]
+    steps = ["6month", "month", "week", "day"]
 
     assert (step in steps), str(
         "Unrecognised step size.",
@@ -245,8 +244,6 @@ def check_inputs(inputs, debug=False):
         inputs["email"] = False
 
     return inputs
-
-
 
 
 def backup_the_input_file():
@@ -512,6 +509,12 @@ def list_of_times_to_run(start_time, end_time, inputs):
         """
         return _my_datetime.strftime("%Y%m%d")
 
+    if step == "12month":
+        time_delta = relativedelta(months=12)
+    if step == "6month":
+        time_delta = relativedelta(months=6)
+    if step == "3month":
+        time_delta = relativedelta(months=3)
     if step == "month":
         time_delta = relativedelta(months=1)
     elif step == "week":
@@ -662,8 +665,10 @@ def create_new_input_file(start_time, end_time, input_file):
 
 
 
-def create_the_queue_files(times, inputs, debug=DEBUG):
-    """ """
+def create_PBS_queue_files(times, inputs, debug=DEBUG):
+    """
+    Create the queue files for a PBS managed queue (earth0)
+    """
     # Create local variables
     queue_name = inputs.queue_name
     job_name = inputs.job_name
@@ -815,7 +820,7 @@ fi
             )
 
         queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
-        queue_file = open(queue_file_location, 'wb')
+        queue_file = open(queue_file_location, 'w')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command
         if time == times[-1]:
@@ -825,7 +830,7 @@ fi
     return
 
 
-def create_the_run_script(months):
+def create_PBS_run_script(months):
     """
     Create the script that can set off the run jobs for rerunning or manual
     submission.
@@ -987,14 +992,14 @@ def test_list_of_times_to_run():
                                      "20140810", "20140817", "20140824",
                                      "20140831"]
                 }
-    dayly = {"step": "day",
+    daily = {"step": "day",
              "start_time": "20000101",
              "end_time": "20000106",
              "expected_output": ["20000101", "20000102", "20000103",
                                  "20000104", "20000105", "20000106"]
             }
 
-    tests = [monthly, leap_year, dayly]
+    tests = [monthly, leap_year, daily]
 
     for test in tests:
         inputs = GET_INPUTS()
