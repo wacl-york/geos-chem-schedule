@@ -35,9 +35,10 @@ Scheduler = 'SLURM'
 ########
 
 
-class GET_INPUTS:
+class GC_Job:
     """
-    A class containing all the variables needed
+    A class containing all the variables needed for scheduling a GC job
+
     Attributes:
         attribute: default   - description
         job_name: GEOS   - Name of the job to appear in qstat
@@ -50,7 +51,7 @@ class GET_INPUTS:
         email_option: "yes"   - Do you want an email upon completion?
         email_address: "example@example.com"    - Address to send emails to
         email_setting: "e"   - Email on exit? google PBS email for more
-        memory_need: "20gb"   - Maximum memory you will need"
+        memory_need: "2Gb"   - Maximum memory you will need"
     """
 
     def __init__(self):
@@ -59,7 +60,7 @@ class GET_INPUTS:
         script_dir = os.path.dirname(script_location)
         user_settings_file = os.path.join(script_dir, 'settings.json')
 
-        # set defaults
+        # Set defaults
         self.job_name = "GEOS"
         self.step = "month"
         self.queue_priority = "0"
@@ -70,12 +71,12 @@ class GET_INPUTS:
         self.email_option = "yes"
         self.email_address = "example@example.com"
         self.email_setting = "e"
-        self.memory_need = "20gb"
+        self.memory_need = "2Gb"
         self.cpus_need = '20'
         self.run_script = False
         self.out_of_hours = False
         self.email = False
-
+        # Read the settings JSON file if this is present
         if os.path.exists(user_settings_file):
             settings_file = open(user_settings_file, 'r')
             options = json.load(settings_file)
@@ -98,7 +99,6 @@ class GET_INPUTS:
         for key, val in list(_vars.items()):
             string = string + "{key}: {val} \n".format(key=key, val=val)
             print("{key}: {val} \n".format(key=key, val=val))
-#        attrs = str(self.__dict__)
         return string
 
     def __repr__(self):
@@ -117,22 +117,25 @@ class GET_INPUTS:
             Check if a key is a built in class function or variable
             """
             return bool(key.startswith('__') and not callable(key))
-        _vars = {key: val for key, val in list(
-            self.__dict__.items()) if not built_in_function(key)}
+        _list = list(self.__dict__.items())
+        _vars = {key: val for key, val in _list if not built_in_function(key)}
         return _vars
 
     def __setitem__(self, name, value):
         self.__dict__[name] = value
 
     def __getitem__(self, name):
-        """Allow use like a dictionary"""
+        """ Allow class to be used like a dictionary """
         return self.__dict__[name]
 
 
 def run_completion_script():
     """
-    Run a script when the final month finishes. This could be a clean up script
-    or a post processing script.
+    Run a script when the final job finishes
+
+    Notes
+    -------
+     - For example, this could be a clean up script or a post-processing script
     """
     return
 
@@ -142,10 +145,10 @@ def run_completion_script():
 
 def main(debug=DEBUG):
     """
-    Run monthly_run
+    Run the main driver of the 'monthly_run' module
     """
     # Get the default inputs as a class
-    inputs = GET_INPUTS()
+    inputs = GC_Job()
 
     # Get the arguments from the command line or UI
     inputs = get_arguments(inputs, debug=DEBUG)
@@ -165,35 +168,38 @@ def main(debug=DEBUG):
     # Create the individual time input files
     create_the_input_files(times, inputs=inputs)
 
-    # Create the PBS queue files
-    create_PBS_queue_files(times, inputs=inputs, debug=DEBUG)
-
-    # Create the SLURM queue files
-    create_SLURM_queue_files(times, inputs=inputs, debug=DEBUG)
-
-    # Create the PSB run script
-    create_PBS_run_script(times)
-
-    # Create the SLURM run script
-    create_SLURM_run_script(times)
-
-    # Send the script to the queue if requested
+    # Create the files required by the specific schedular
     if Scheduler == 'PBS':
+        # Create the PBS queue files
+        create_PBS_queue_files(times, inputs=inputs, debug=DEBUG)
+        # Create the PSB run script
+        create_PBS_run_script(times)
+        # Send the script to the queue if requested
         run_PBS_script(inputs.run_script)
-
-    # Send the script to the queue if requested
-    if Scheduler == 'SLURM':
+    elif Scheduler == 'SLURM':
+        # Create the SLURM queue files
+        create_SLURM_queue_files(times, inputs=inputs, debug=DEBUG)
+        # Create the SLURM run script
+        create_SLURM_run_script(times)
+        # Send the script to the queue if requested
         run_SLURM_script(inputs.run_script)
+    else:
+        print("WARNING: No file ouput for scheduler  '{}'".format(Scheduler))
 
     return
 
 
 def check_inputs(inputs, debug=False):
     """
-    Make sure all the inputs make sense
+    Make sure all the inputs
 
-    Input: inputs(dictionary)
-    Output: inputs(dictionary)
+    Parameters
+    -------
+    Input (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (GC_Job class)
     """
     # Set variables from inputs
     queue_priority = inputs.queue_priority
@@ -262,7 +268,7 @@ def check_inputs(inputs, debug=False):
 
 def backup_the_input_file():
     """
-    Save a copy of the origional input file
+    Save a copy of the original input file
     """
     input_file = "input.geos"
     backup_input_file = "input.geos.orig"
@@ -273,7 +279,7 @@ def backup_the_input_file():
 
 def setup_script():
     """
-    Creates a symbolic link allowing the use to run "monthly_run" from any folder"
+    Creates a symbolic link to allow running "monthly_run" from any directory
     """
     print("\n",
           "Monthly run setup complete. Change your default settings in settings.json\n",
@@ -293,7 +299,7 @@ def setup_script():
     #        bashrc.write('export PATH=$PATH:$HOME/bin')
     print('echo "## Written by monthly_run" >> $HOME/.bashrc')
     print('echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc')
-    # source the bashrc
+    # Source the bashrc
     print("source $HOME/.bashrc")
     print("\n")
     sys.exit()
@@ -302,6 +308,15 @@ def setup_script():
 def get_arguments(inputs, debug=DEBUG):
     """
     Get the arguments supplied from command line
+
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    debug (bool): Print debugging output to screen
+
+    Returns
+    -------
+    (GC_Job class)
     """
     # If there are no arguments then run the GUI
     if len(sys.argv) > 1:
@@ -324,8 +339,10 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.out_of_hours_string = arg[15:].strip()
             elif arg.startswith("--wall-time="):
                 inputs.wall_time = arg[12:].strip()
+            elif arg.startswith("--cpus-need="):
+                inputs.cpus_need = arg[12:].strip()
             elif arg.startswith("--memory-need="):
-                inputs.wall_time = arg[14:].strip()
+                inputs.memory_need = arg[14:].strip()
             elif arg.startswith("--help"):
                 print("""
             monthly-run.py
@@ -369,8 +386,16 @@ def test_get_arguments():
 def get_variables_from_cli(inputs):
     """
     Get the variables needed from a UI
+
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (GC_Job class)
     """
-    # Set variables from inputs
+    # Set variables to values in the inputs class
     job_name = inputs.job_name
     queue_priority = inputs.queue_priority
     queue_name = inputs.queue_name
@@ -438,7 +463,7 @@ def get_variables_from_cli(inputs):
     clear_screen()
     print("How much memory does your run need?\n"
           "Lower amounts may increase priority.\n"
-          "Example 4gb, 200mb, 200000kb.\n")
+          "Example 2Gb, 4.8Gb, 200Mb, 200000kb.\n")
     input_read = str(input('DEFAULT = ' + memory_need + ' :\n'))
     if input_read:
         memory_need = input_read
@@ -446,7 +471,7 @@ def get_variables_from_cli(inputs):
 
     # Set the CPU requirements for the run
     clear_screen()
-    print("How many CPUS does your run need?\n"
+    print("How many CPUS (per node) does your run need?\n"
           "Lower amounts may increase priority.\n"
           "Example 5, 15, 20.\n")
     input_read = str(input('DEFAULT = ' + cpus_need + ' :\n'))
@@ -539,6 +564,16 @@ def get_start_and_end_dates():
 def list_of_times_to_run(start_time, end_time, inputs):
     """
     Create a list of start times and the end time of the run
+
+    Parameters
+    -------
+    start_time (str): Start time of GEOS-Chem simulation in input.goes
+    end_time (str):  End time of GEOS-Chem simulation in input.goes
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (GC_Job class)
     """
     # Get steps from inputs
     step = inputs.step
@@ -583,11 +618,20 @@ def update_output_line(line, end_time, inputs=None):
     """
     Make sure we have a 3 in the end date in input.geos output menu
 
-    INPUT:
-        line - string pulled from the input file
-        end_time - "YYYYMMDD"
-    OUTPUT:
-        line - string to write to the input file
+
+    Parameters
+    -------
+    line (str): string pulled from the input file
+    end_time (str):  End time of GEOS-Chem simulation (format: "YYYYMMDD")
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (str)
+
+    Notes
+    -------
+     - Returned output is the string to write to the *input.geos* file
     """
     # Retrieve the frequency of output
     step = inputs.step
@@ -615,25 +659,40 @@ def update_output_line(line, end_time, inputs=None):
     return newline
 
 
-def is_current_year_a_leap_year():
-    """ Check if current year is a leap year """
-    # TODO
-    return
+def is_current_year_a_leap_year(year):
+    """
+    Check if current year is a leap year
+
+    Parameters
+    -------
+    year (int): year to check if it is a leap year
+
+    Returns
+    -------
+    (bool)
+    """
+    import calender
+    return calendar.isleap(year)
 
 
 def create_the_input_files(times, inputs=None, debug=False):
     """
     Create the input files for the run
-    INPUT:
-        times - list of string times in the format YYYYMMDD
-    Output:
-        None
+
+    Parameters
+    -------
+    times (list): list of string times in the format YYYYMMDD
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    debug (bool): Print debugging output to screen
+
+    Returns
+    -------
+    (None)
     """
-    # create folder input files
+    # Create folder input files
     _dir = os.path.dirname("input_files/")
     if not os.path.exists(_dir):
         os.makedirs(_dir)
-
     # Modify the input files to have the correct start times
     # Also make sure they end on a 3
 
@@ -689,12 +748,20 @@ def create_new_input_file(start_time, end_time, input_file, inputs=None):
     """
     Create a new input file based on the passed in open input file.
 
-    INPUTS:
-        start_time: YYYYMMSS
-        end_time: YYYYMMSS
-        input_file: Open file that is a list of strings
-    OUTPUT:
-        output_file: output file that is a list of strings
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    start_time (str): Start of GEOS-Chem run in format YYYYMMSS
+    end_time (str): End of GEOS-Chem run in format YYYYMMSS
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (list)
+
+    Notes
+    -------
+     - Return list is the output file as a list of strings
     """
 
     new_lines = []
@@ -721,6 +788,16 @@ def create_new_input_file(start_time, end_time, input_file, inputs=None):
 def create_PBS_queue_files(times, inputs=None, debug=DEBUG):
     """
     Create the queue files for a PBS managed queue (York's earth0 HPC)
+
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    times (list): list of string times in the format YYYYMMDD
+    debug (bool): Print debugging output to screen
+
+    Returns
+    -------
+    (None)
     """
     # Create local variables
     queue_name = inputs.queue_name
@@ -821,6 +898,16 @@ def create_PBS_queue_files(times, inputs=None, debug=DEBUG):
 def create_SLURM_queue_files(times, inputs=None, debug=DEBUG):
     """
     Create the queue files for a SLURM managed queue (e.g. York's viking HPC)
+
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    times (list): list of string times in the format YYYYMMDD
+    debug (bool): Print debugging output to screen
+
+    Returns
+    -------
+    (None)
     """
     # Create local variables
     queue_name = inputs.queue_name
@@ -928,19 +1015,24 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
     return
 
 
-def create_PBS_run_script(months):
+def create_PBS_run_script(times):
     """
-    Create the script that can set the run jobs running
+    Create the script that can set the 1st scheduled job running
 
-    Input: months
-    Output: 'run_PBS_geos.sh'
+    Parameters
+    -------
+    time_periods (list): list of time periods being output for
+
+    Returns
+    -------
+    (None)
     """
     FileName = 'run_geos_PBS.sh'
     run_script = open(FileName, 'w')
     run_script_string = ("""
 #!/bin/bash
-qsub PBS_queue_files/{month}.pbs
-     """).format(month=months[0])
+qsub PBS_queue_files/{time}.pbs
+     """).format(time=times[0])
     run_script.write(run_script_string)
     run_script.close()
     # Change the permissions so it is executable
@@ -949,18 +1041,24 @@ qsub PBS_queue_files/{month}.pbs
     return
 
 
-def create_SLURM_run_script(months):
+def create_SLURM_run_script(times):
     """
-    Create the script that can set the run jobs running
-    Input: months
-    Output: 'run_SLURM_geos.sh'
+    Create the script that can set the 1st scheduled job running
+
+    Parameters
+    -------
+    time_periods (list): list of time periods being output for
+
+    Returns
+    -------
+    (None)
     """
     FileName = 'run_geos_SLURM.sh'
     run_script = open(FileName, 'w')
     run_script_string = ("""
 #!/bin/bash
-sbatch SLURM_queue_files/{month}.sbatch
-     """).format(month=months[0])
+sbatch SLURM_queue_files/{time}.sbatch
+     """).format(time=times[0])
     run_script.write(run_script_string)
     run_script.close()
     # Change the permissions so it is executable
@@ -1027,7 +1125,7 @@ def test_check_inputs():
 
     for test in tests:
         for data in test["valid_data"]:
-            inputs = GET_INPUTS()
+            inputs = GC_Job()
             inputs[test["name"]] = data
             # Confirm the valid data works
             try:
@@ -1049,7 +1147,7 @@ def test_check_inputs():
                         str(inputs))
 
         for data in test["invalid_data"]:
-            inputs = GET_INPUTS()
+            inputs = GC_Job()
             inputs[test["name"]] = data
             # Confirm the invalid data fails
             with pytest.raises(Exception):
@@ -1068,7 +1166,7 @@ def test_check_inputs_steps():
     """
     Test check_inputs() steps
     """
-    inputs = GET_INPUTS()
+    inputs = GC_Job()
     for step in ["6month", "month", "week", "day"]:
         inputs.step = step
         check_inputs(inputs)
@@ -1088,7 +1186,7 @@ def test_get_start_and_end_dates():
     start_time, end_time = get_start_and_end_dates()
     assert start_time == "20100102"
     assert end_time == "20110102"
-    # clean up
+    # Clean up
     os.remove("input.geos")
     return
 
@@ -1123,7 +1221,7 @@ def test_list_of_times_to_run():
     tests = [monthly, leap_year, daily]
 
     for test in tests:
-        inputs = GET_INPUTS()
+        inputs = GC_Job()
         inputs["step"] = test["step"]
         times = list_of_times_to_run(test["start_time"],
                                      test["end_time"], inputs)
