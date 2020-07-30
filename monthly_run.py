@@ -11,8 +11,8 @@ if no arguments are passed.
 see "$ monthly_run.py --help" for more information.
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import subprocess
 import json
 import os
@@ -98,7 +98,7 @@ class GET_INPUTS:
         """
         _vars = self.variables()
         string = ""
-        for key, val in _vars.items():
+        for key, val in list(_vars.items()):
             string = string + "{key}: {val} \n".format(key=key, val=val)
             print("{key}: {val} \n".format(key=key, val=val))
 #        attrs = str(self.__dict__)
@@ -119,7 +119,7 @@ class GET_INPUTS:
             Check if a key is a built in class function or variable
             """
             return bool(key.startswith('__') and not callable(key))
-        _vars = {key:val for key, val in self.__dict__.items() if not built_in_function(key)}
+        _vars = {key:val for key, val in list(self.__dict__.items()) if not built_in_function(key)}
         return _vars
 
     def __setitem__(self, name, value):
@@ -376,64 +376,64 @@ def get_variables_from_cli(inputs):
     clear_screen()
     print('What name do you want in the queue?\n', \
     '(Will truncate to 9 characters).\n')
-    input = str(raw_input('DEFAULT = ' + job_name + ' :\n'))
-    if input:
-        job_name = input
+    read_input = str(input('DEFAULT = ' + job_name + ' :\n'))
+    if read_input:
+        job_name = read_input
 
     # Specify the step size
     clear_screen()
     print('What time step size do you want?\n', \
         '(month recommended for 4x5, 2x25. week or day available).\n')
-    input = str(raw_input('DEFAULT = ' + step + ' :\n'))
-    if input:
-        step = input
+    read_input = str(input('DEFAULT = ' + step + ' :\n'))
+    if read_input:
+        step = read_input
 
     # Give the job a priority
     clear_screen()
     print("What queue priority do you want? (Between -1024 and 1023).\n")
-    input = str(raw_input('DEFAULT = ' + queue_priority + ' :\n'))
-    if input:
-        queue_priority = input
+    read_input = str(input('DEFAULT = ' + queue_priority + ' :\n'))
+    if read_input:
+        queue_priority = read_input
 
     # Choose the queue
     clear_screen()
     print("What queue do you want to go in?\n")
-    input = str(raw_input('DEFAULT = ' + queue_name + ' :\n'))
+    read_input = str(input('DEFAULT = ' + queue_name + ' :\n'))
     if input:
-        queue_name = input
+        queue_name = read_input
 
     # Check for out of hours run
     clear_screen()
     print("Do you only want to run jobs out of normal work hours?\n" \
         "(Monday to Friday 9am - 5pm)?\n")
-    input = str(raw_input('Default = ' + out_of_hours_string + ' :\n'))
-    if input:
-        out_of_hours_string = input
+    read_input = str(input('Default = ' + out_of_hours_string + ' :\n'))
+    if read_input:
+        out_of_hours_string = read_input
 
     # Set the walltime for the run
     clear_screen()
     print("How long does it take to run a month (HH:MM:SS)?\n",
           "Be generous! if the time is too short your\n"
           "job will get deleted (Max = 48 hours)\n")
-    input = str(raw_input('DEFAULT = ' + wall_time + ' :\n'))
-    if input:
-        wall_time = input
+    read_input = str(input('DEFAULT = ' + wall_time + ' :\n'))
+    if read_input:
+        wall_time = read_input
 
     # Set the memory requirements for the run
     clear_screen()
     print("How much memory does your run need?\n"
           "Lower amounts may increase priority.\n"
           "Example 4gb, 200mb, 200000kb.\n")
-    input = str(raw_input('DEFAULT = ' + memory_need + ' :\n'))
-    if input:
-        memory_need = input
+    read_input = str(input('DEFAULT = ' + memory_need + ' :\n'))
+    if read_input:
+        memory_need = read_input
 
     # Run script check
     clear_screen()
     print("Do you want to run the script now?\n")
-    input = str(raw_input('DEFAULT = ' + run_script_string + ' :\n'))
-    if input:
-        run_script_string = input
+    read_input = str(input('DEFAULT = ' + run_script_string + ' :\n'))
+    if read_input:
+        run_script_string = read_input
 
     clear_screen()
 
@@ -709,7 +709,7 @@ def create_the_queue_files(times, inputs, debug=DEBUG):
             out_of_hours_string = "\n"
 
         # Set up email if its the final run and email = True
-        # TODO - add an option to always send email when run finishes? 
+        # TODO - add an option to always send email when run finishes?
         # or if run finishes without a success code?
         if email and (time == times[-1]):
             email_string = (
