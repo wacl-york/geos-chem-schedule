@@ -103,6 +103,7 @@ class GET_INPUTS:
         """
         attrs = str(self.__dict__)
         return attrs
+
     def variables(self):
         """
         Return a list of class variables as a dictionary.
@@ -112,7 +113,8 @@ class GET_INPUTS:
             Check if a key is a built in class function or variable
             """
             return bool(key.startswith('__') and not callable(key))
-        _vars = {key:val for key, val in list(self.__dict__.items()) if not built_in_function(key)}
+        _vars = {key: val for key, val in list(
+            self.__dict__.items()) if not built_in_function(key)}
         return _vars
 
     def __setitem__(self, name, value):
@@ -132,6 +134,7 @@ def run_completion_script():
 
 # --------------------------------------------------------------
 # Nothing below here should need changing, but feel free to look.
+
 
 def main(debug=DEBUG):
     """
@@ -169,6 +172,7 @@ def main(debug=DEBUG):
 
     return
 
+
 def check_inputs(inputs, debug=False):
     """
     Make sure all the inputs make sense
@@ -188,8 +192,8 @@ def check_inputs(inputs, debug=False):
 #    queue_names = ['run', 'large',]
     # Viking queue names
     queue_names = [
-    'interactive', 'month', 'week', 'gpu', 'himem_week', 'himem', 'test',
-    'nodes',
+        'interactive', 'month', 'week', 'gpu', 'himem_week', 'himem', 'test',
+        'nodes',
     ]
     yess = ['yes', 'YES', 'Yes', 'Y', 'y']
     nooo = ['no', 'NO', 'No', 'N', 'n']
@@ -198,34 +202,34 @@ def check_inputs(inputs, debug=False):
     assert (step in steps), str(
         "Unrecognised step size.",
         "try one of {steps}",
-        ).format(steps=steps)
+    ).format(steps=steps)
 
     assert (-1024 <= int(queue_priority) <= 1023), str(
         "Priority not between -1024 and 1023. Received {priority}"
-        ).format(priority=queue_priority)
+    ).format(priority=queue_priority)
 
     assert (queue_name in queue_names), str(
         "Unrecognised queue type: {queue_name}"
-        ).format(queue_name=queue_name)
+    ).format(queue_name=queue_name)
 
     assert ((out_of_hours_string in yess) or (out_of_hours_string in nooo)), str(
         "Unrecognised option for out of hours.",
         "Try one of: {yess} / {nooo}",
         "The command given was {run_script_string}"
-        ).format(yess=yess, nooo=nooo, run_script_string=run_script_string)
+    ).format(yess=yess, nooo=nooo, run_script_string=run_script_string)
 
     assert (run_script_string in yess) or (run_script_string in nooo), str(
         "Unrecognised option for run the script on completion.",
         "Try one of: {yess} / {nooo}",
         "The command given was: {run_script_string}."
-        ).format(yess=yess, nooo=nooo,
-                 run_script_string=run_script_string)
+    ).format(yess=yess, nooo=nooo,
+             run_script_string=run_script_string)
 
     assert (email_option in yess) or (email_option in nooo), str(
         "Email option is neither yes or no.",
         "Please check the settings.",
         "Try one of: {yess} / {nooo}"
-        ).format(yess=yess, nooo=nooo)
+    ).format(yess=yess, nooo=nooo)
 
     # Create the logicals
     if run_script_string in yess:
@@ -278,7 +282,7 @@ def setup_script():
     # Create a symlink from the file to the bin
     print("ln -s {script} $HOME/bin/monthly_run".format(script=script_location))
     # Make sure the ~/bin is in the bashrc
-    #with open('$HOME/.bashrc','a') as bashrc:
+    # with open('$HOME/.bashrc','a') as bashrc:
     #        bashrc.write('## Written by monthly_run')
     #        bashrc.write('export PATH=$PATH:$HOME/bin')
     print('echo "## Written by monthly_run" >> $HOME/.bashrc')
@@ -333,7 +337,7 @@ def get_arguments(inputs, debug=DEBUG):
             e.g. to set the queue name to 'bob' write --queue-name=bob
             """)
         else:
-            print ("""Invalid argument {arg}
+            print("""Invalid argument {arg}
                      Try --help for more info.""".format(arg=arg)
                   )
             sys.exit(2)
@@ -341,12 +345,13 @@ def get_arguments(inputs, debug=DEBUG):
         inputs = get_variables_from_cli(inputs)
     return inputs
 
+
 def test_get_arguments():
     """
     Test that the passed arguments get assigned to the class.
     """
     ########
-    ## TO DO
+    # TO DO
     ########
     #
     # Write these tests....
@@ -371,16 +376,16 @@ def get_variables_from_cli(inputs):
 
     # Name the queue
     clear_screen()
-    print('What name do you want in the queue?\n', \
-    '(Will truncate to 9 characters).\n')
+    print('What name do you want in the queue?\n',
+          '(Will truncate to 9 characters).\n')
     read_input = str(input('DEFAULT = ' + job_name + ' :\n'))
     if read_input:
         job_name = read_input
 
     # Specify the step size
     clear_screen()
-    print('What time step size do you want?\n', \
-        '(month recommended for 4x5, 2x25. week or day available).\n')
+    print('What time step size do you want?\n',
+          '(month recommended for 4x5, 2x25. week or day available).\n')
     read_input = str(input('DEFAULT = ' + step + ' :\n'))
     if read_input:
         step = read_input
@@ -401,8 +406,8 @@ def get_variables_from_cli(inputs):
 
     # Check for out of hours run
     clear_screen()
-    print("Do you only want to run jobs out of normal work hours?\n" \
-        "(Monday to Friday 9am - 5pm)?\n")
+    print("Do you only want to run jobs out of normal work hours?\n"
+          "(Monday to Friday 9am - 5pm)?\n")
     read_input = str(input('Default = ' + out_of_hours_string + ' :\n'))
     if read_input:
         out_of_hours_string = read_input
@@ -445,12 +450,13 @@ def get_variables_from_cli(inputs):
     inputs.step = step.lower()
     return inputs
 
+
 def test_get_variables_from_cli():
     """
     Test that variables passed from the cli make it into the class.
     """
     #########
-    ## To-do
+    # To-do
     ########
     #
     # Write this test
@@ -495,7 +501,6 @@ def get_start_and_end_dates():
     return start_date, end_date
 
 
-
 def list_of_times_to_run(start_time, end_time, inputs):
     """
     Create a list of start times and the end time of the run
@@ -533,7 +538,6 @@ def list_of_times_to_run(start_time, end_time, inputs):
         times.append(datetime_2_YYYYMMDD(_timestamp))
 
     return times
-
 
 
 def update_output_line(line, end_time):
@@ -584,7 +588,6 @@ def create_the_input_files(times, debug=False):
     if not os.path.exists(_dir):
         os.makedirs(_dir)
 
-
     # Modify the input files to have the correct start times
     # Also make sure they end on a 3
 
@@ -598,9 +601,11 @@ def create_the_input_files(times, debug=False):
             start_time = time
             continue
 
-        time_input_file_location = os.path.join(_dir, (start_time+".input.geos"))
+        time_input_file_location = os.path.join(
+            _dir, (start_time+".input.geos"))
 
-        new_input_geos = create_new_input_file(start_time, end_time, input_geos)
+        new_input_geos = create_new_input_file(
+            start_time, end_time, input_geos)
 
         with open(time_input_file_location, 'w') as output_file:
             output_file.writelines(new_input_geos)
@@ -632,6 +637,7 @@ def create_the_input_files(times, debug=False):
         start_time = time
     return
 
+
 def create_new_input_file(start_time, end_time, input_file):
     """
     create a new input file based on the passed in open input file.
@@ -662,7 +668,6 @@ def create_new_input_file(start_time, end_time, input_file):
             newline = line
         new_lines.append(newline)
     return new_lines
-
 
 
 def create_PBS_queue_files(times, inputs, debug=DEBUG):
@@ -722,8 +727,8 @@ def create_PBS_queue_files(times, inputs, debug=DEBUG):
 #PBS -m {email_setting}
 #PBS -M {email_address}
 """
-                ).format(email_setting=email_setting,
-                         email_address=email_address)
+            ).format(email_setting=email_setting,
+                     email_address=email_address)
         else:
             email_string = "\n"
 
@@ -809,7 +814,8 @@ fi
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
-            job_name=(job_name + start_time)[:14], # job name can only be 15 characters
+            # job name can only be 15 characters
+            job_name=(job_name + start_time)[:14],
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
@@ -817,7 +823,7 @@ fi
             email_string=email_string,
             out_of_hours_string=out_of_hours_string,
             end_time=end_time
-            )
+        )
 
         queue_file_location = os.path.join(_dir, (start_time + ".pbs"))
         queue_file = open(queue_file_location, 'w')
@@ -854,7 +860,6 @@ if __name__ == '__main__':
     main(debug=DEBUG)
 
 
-
 ########
 # Tests
 ########
@@ -871,36 +876,35 @@ def test_check_inputs():
         "name": "queue_priority",
         "valid_data": [1000, "1000", 1023, -1024, 0, -0],
         "invalid_data": [-2000, "bob", 1024]
-        }
+    }
     queue_name = {
         "name": "queue_name",
         "valid_data": ["run"],
         "invalid_data": ["bob"]
-        }
+    }
     out_of_hours_string = {
         "name": "out_of_hours_string",
         "valid_data": yess + nooo,
         "invalid_data": ["bob"],
         "data_logical": "out_of_hours"
-        }
+    }
     email_option = {
         "name": "email_option",
         "valid_data": yess + nooo,
         "invalid_data": ["bob", 1000],
         "data_logical": "email"
-        }
+    }
     run_script_string = {
         "name": "run_script_string",
         "valid_data": yess + nooo,
         "invalid_data": ["bob"],
         "data_logical": "run_script"
-        }
+    }
     steps = {
         "name": "step",
         "valid_data": ["month", "week", "day"],
         "invalid_data": ["bob"],
-        }
-
+    }
 
     tests = [queue_priority, queue_name, out_of_hours_string,
              email_option, run_script_string, steps]
@@ -920,14 +924,13 @@ def test_check_inputs():
             # Confirm it changes the logical if one exists
             if "data_logical" in test:
                 if data in yess:
-                    assert inputs[test["data_logical"]], ( \
+                    assert inputs[test["data_logical"]], (
                         "Name=", str(test["name"]), "\ndata=", str(data), "\n",
                         str(inputs))
                 if data in nooo:
-                    assert not inputs[test["data_logical"]], ( \
+                    assert not inputs[test["data_logical"]], (
                         "Name=", str(test["name"]), "\ndata=", str(data), "\n",
                         str(inputs))
-
 
         for data in test["invalid_data"]:
             inputs = GET_INPUTS()
@@ -944,6 +947,7 @@ def test_check_inputs():
                     raise
     return
 
+
 def test_check_inputs_steps():
     """
     Test check_inputs() steps
@@ -956,6 +960,7 @@ def test_check_inputs_steps():
         inputs.step = "bob"
         check_inputs(inputs)
     return
+
 
 def test_get_start_and_end_dates():
     "Test the retreval of the start date and end date"
@@ -984,20 +989,20 @@ def test_list_of_times_to_run():
                                    "20070701", "20070801", "20070901",
                                    "20071001", "20071101", "20071201",
                                    "20080101"]
-              }
+               }
     leap_year = {"step": "week",
                  "start_time": "20140720",
                  "end_time": "20140831",
                  "expected_output": ["20140720", "20140727", "20140803",
                                      "20140810", "20140817", "20140824",
                                      "20140831"]
-                }
+                 }
     daily = {"step": "day",
              "start_time": "20000101",
              "end_time": "20000106",
              "expected_output": ["20000101", "20000102", "20000103",
                                  "20000104", "20000105", "20000106"]
-            }
+             }
 
     tests = [monthly, leap_year, daily]
 
@@ -1009,6 +1014,7 @@ def test_list_of_times_to_run():
         assert times == test["expected_output"]
 
     return
+
 
 def test_create_new_input_file():
     """
@@ -1046,6 +1052,7 @@ def test_create_new_input_file():
 
     return
 
+
 def test_update_output_line():
     """
     Tests for update_output_line
@@ -1054,30 +1061,31 @@ def test_update_output_line():
         "end_time": "20140305",
         "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
         "lineout": "Schedule output for MAR : 0000300000000000000000000000000\n",
-        }
+    }
     test_2 = {
         "end_time": "20140405",
         "linein": "Schedule output for MAR : 3000000000000000000000000000000\n",
         "lineout": "Schedule output for MAR : 0000000000000000000000000000000\n",
-        }
+    }
     test_3 = {
         "end_time": "20140831",
         "linein": "Schedule output for AUG : 0000000000030000000000000000000\n",
         "lineout": "Schedule output for AUG : 0000000000000000000000000000003\n",
-        }
+    }
     test_4 = {
         "end_time": "20140831",
         "linein": "Schedule output for APR : 000000000000000000000000000000\n",
         "lineout": "Schedule output for APR : 000000000000000000000000000000\n",
-        }
+    }
     test_5 = {
         "end_time": "20150630",
         "linein": "Schedule output for JUN : 333333333333333333333333333333\n",
         "lineout": "Schedule output for JUN : 000000000000000000000000000003\n",
-        }
+    }
 
     tests = [test_1, test_2, test_3, test_4, test_5]
     for test in tests:
-        assert test["lineout"] == update_output_line(test["linein"], test["end_time"])
+        assert test["lineout"] == update_output_line(
+            test["linein"], test["end_time"])
 
     return
