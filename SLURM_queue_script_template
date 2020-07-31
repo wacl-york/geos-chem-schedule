@@ -47,7 +47,7 @@
 #          Any directory into which logs are being written must exist before
 #          running your job.
 #-------------------------------------------------------------------------------
-#SBATCH --output={job_name}.geos.log
+#SBATCH --output={start_time}.geos.log
 
 #-------------------------------------------------------------------------------
 # partition - The SLURM partition to use for your job. SLURM partitions are
@@ -100,7 +100,6 @@ source setup_geos_environment.sh
 
 # Make sure the required dirs exists
 mkdir -p queue_output
-mkdir -p logs
 mkdir -p SLURM_queue_files
 
 # Create the exit file
@@ -116,20 +115,16 @@ ln -s input_files/{start_time}.input.geos input.geos
 srun geos
 
 # Only submit the next month if GEOS-Chem completed correctly
-last_line = "$(tail -n1 {job_name}.geos.log)"
+last_line = "$(tail -n1 {start_time}.geos.log)"
 complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
 # Move the files with for the compltete output to the Output folder
-# mv ctm.bpch {start_time}.ctm.bpch
 mv HEMCO.log OutputDir/{start_time}.HEMCO.log
-#mv {job_name}.geos.log OutputDir/
-
-echo "$last_line"
-echo "$complete_last_line"
 
 if [ "$last_line" = "$complete_last_line" ]; then
-#   mv SLURM_queue_files/{end_time}.sbatch .
-   mv {job_name}.geos.log OutputDir/                                                                                                                               
-   job_number=$(sbatch SLURM_queue_files/{end_time}.sbatch)
-   echo "$job_number"
+   mv {start_time}.geos.log OutputDir/
+   if [ "{submit_next_job}" = "True" ]; then
+       job_number=$(sbatch SLURM_queue_files/{end_time}.sbatch)
+       echo "$job_number"    
+   fi
 fi
