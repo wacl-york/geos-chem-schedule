@@ -68,7 +68,7 @@ mv HEMCO.log logs/{start_time}.HEMCO.log
 last_line = "$(tail -n1 {start_time}.geos.log)"
 complete_last_line = "**************   E N D   O F   G E O S -- C H E M   **************"
 
-if [ $last_line = $complete_last_line]; then
+if [ "$last_line" = "$complete_last_line"]; then
    job_number=$(qsub PBS_queue_files/{end_time}.pbs)
    echo $job_number
 fi

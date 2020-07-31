@@ -122,9 +122,14 @@ complete_last_line = "**************   E N D   O F   G E O S -- C H E M   ******
 # Move the files with for the compltete output to the Output folder
 # mv ctm.bpch {start_time}.ctm.bpch
 mv HEMCO.log OutputDir/{start_time}.HEMCO.log
-mv {job_name}.geos.log OutputDir/
+#mv {job_name}.geos.log OutputDir/
 
-if [ $last_line = $complete_last_line]; then
-   job_number=$(srun SLURM_queue_files/{end_time}.sbatch)
-   echo $job_number
+echo "$last_line"
+echo "$complete_last_line"
+
+if [ "$last_line" = "$complete_last_line" ]; then
+#   mv SLURM_queue_files/{end_time}.sbatch .
+   mv {job_name}.geos.log OutputDir/                                                                                                                               
+   job_number=$(sbatch SLURM_queue_files/{end_time}.sbatch)
+   echo "$job_number"
 fi
