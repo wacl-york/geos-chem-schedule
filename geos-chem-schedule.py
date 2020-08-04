@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-A script to split up GEOS-Chem jobs on HPC into shorter runs
+A script to split up GEOS-Chem jobs and submit via a job schedular
 
 Notes
 -------
@@ -10,7 +10,7 @@ Notes
  - fairer access
  - You can either pass as arguments or run a UI if no arguments are passed.
  - The jobs can call the next job in the sequence meaning you can submit in the same way.
- - see "$ python monthly_run.py --help" for more information.
+ - see "$ python geos-chem-schedule.py --help" for more information.
  - TODO:
     - Make the stop after the final job in a set end in a cleaner way
     - Alter SLURM script to stop it seeing BASH variables as commands
@@ -34,7 +34,8 @@ class GC_Job:
     """
     A class containing all the variables needed for scheduling a GC job
 
-    Attributes:
+    Attributes
+    -------
         attribute: default   - description
         job_name: GEOS   - Name of the job to appear in qstat
         step: month   - Time of the split chunks
@@ -142,7 +143,7 @@ def run_completion_script():
 
 def main(debug=DEBUG):
     """
-    Run the main driver of the 'monthly_run' module
+    Run the main driver of the 'geos-chem-schedule' module
     """
     # Get the default inputs as a class
     inputs = GC_Job()
@@ -277,11 +278,11 @@ def backup_the_input_file():
 
 def setup_script():
     """
-    Creates a symbolic link to allow running "monthly_run" from any directory
+    Creates a symbolic link to allow running "geos-chem-schedule" from any directory
     """
     print("\n",
-          "Monthly run setup complete. Change your default settings in settings.json\n",
-          "To run the script from anywhere with the monthly_run command,",
+          "geos-chem-schedule setup complete. Change your default settings in settings.json\n",
+          "To run the script from anywhere with the geos-chem-schedule command,",
           "copy the following code into your terminal. \n")
 
     script_location = os.path.realpath(__file__)
@@ -290,12 +291,12 @@ def setup_script():
     # Make sure there is a ~/bin file
     print("mkdir -p $HOME/bin")
     # Create a symlink from the file to the bin
-    print("ln -s {script} $HOME/bin/monthly_run".format(script=script_location))
+    print("ln -s {script} $HOME/bin/geos-chem-schedule".format(script=script_location))
     # Make sure the ~/bin is in the bashrc
     # with open('$HOME/.bashrc','a') as bashrc:
-    #        bashrc.write('## Written by monthly_run')
+    #        bashrc.write('## Written by geos-chem-schedule')
     #        bashrc.write('export PATH=$PATH:$HOME/bin')
-    print('echo "## Written by monthly_run" >> $HOME/.bashrc')
+    print('echo "## Written by geos-chem-schedule " >> $HOME/.bashrc')
     print('echo "export PATH=\$PATH:\$HOME/bin" >> $HOME/.bashrc')
     # Source the bashrc
     print("source $HOME/.bashrc")
@@ -319,7 +320,7 @@ def get_arguments(inputs, debug=DEBUG):
     # If there are no arguments then run the GUI
     if len(sys.argv) > 1:
         for arg in sys.argv:
-            if "monthly-run" in arg:
+            if "geos-chem-schedule" in arg:
                 continue
             if arg.startswith("--setup"):
                 setup_script()
@@ -343,7 +344,7 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.memory_need = arg[14:].strip()
             elif arg.startswith("--help"):
                 print("""
-            monthly-run.py
+            geos-chem-schedule.py
 
             For UI run without arguments
             Arguments are:
@@ -412,7 +413,7 @@ def get_variables_from_cli(inputs):
     DefaultInputPrtStr = "DEFAULT = {} :\n"
 
     # Say that No
-    print('Using user interface to get monthly_run settings\n'
+    print('Using user interface to get geos-chem-schedule settings\n'
           'You can also configure the defaults via the settings.json file\n'
           'Or via '
           )
