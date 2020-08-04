@@ -28,7 +28,7 @@ from dateutil.relativedelta import relativedelta
 import pytest
 
 # Master debug switch for the main driver
-DEBUG = True
+DEBUG = False
 
 class GC_Job:
     """
