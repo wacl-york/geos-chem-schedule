@@ -1,16 +1,14 @@
 # geos-chem-schedule
 
-Reads a GEOS-Chem (http://geos-chem.org/) run directory's input file (`input.geos`) and uses this to split up a job multiple jobs. These jobs can be as part of this process or manually submitted at a later point.
+Reads a GEOS-Chem (http://geos-chem.org/) run directory's input file (`input.geos`) and uses this to split up a job multiple jobs. These jobs can be submitted as part of this process or manually submitted at a later point.
 
-This script intends to make it easier to split up GEOS-Chem jobs into smaller parts that can better fit into queues available on an high performance computing (HPC) facility. Currently this script is compatible with PBS and SLURM.
-
-
+This script intends to make it easier to split up GEOS-Chem jobs into smaller parts that can better fit into queues available on a high-performance computing (HPC) facility. Currently, this script is compatible with PBS and SLURM.
 
 
 ## Install
 
 To install download this repository with git clone. Recommended location would be `$HOME/src/geos-chem-schedule`.
-Once downloaded, you can just add a symbolic link for the `geos-chem-schedule.py` to a run directory and run by calling directly in that directory (e.g. `Python geos-chem-schedule.py`). Alternatively you can install to be run through bash and this is done by navigating to the geos-chem-schedule folder containing geos-chem-schedule.py and running the following steps:
+Once downloaded, you can just add a symbolic link for the `geos-chem-schedule.py` to a run directory and run by calling directly in that directory (e.g. `Python geos-chem-schedule.py`). Alternatively, you can install to be run through bash and this is done by navigating to the geos-chem-schedule folder containing geos-chem-schedule.py and running the following steps:
 
 1. Download the script and run the setup with the following commands.
 
@@ -74,7 +72,7 @@ For example:
 geos-chem-schedule.py --job-name=bob --step=month --queue-name=run --queue-priority=100 --out-of-hours=yes --submit=yes
 ```
 
-This will call the job bob in the queue. It will split up the jobs into months. It will be submitted to the run queue with a priority of 100. The jobs will only start out of hours. If the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
+This will give the the job a name of 'bob' in the 'run' queue, split up the jobs into months, and run the job with priority of 100 (only availible for PBS jobs currently). The jobs will only start if out-of-hours and if the job starts in working hours it will resubmit itself with a command to wait until 1800. The job will be submitted at the end of the script.
 
 
 ## WARNINGS:
