@@ -48,6 +48,7 @@ class GC_Job:
         email_address: "example@example.com"    - Address to send emails to
         email_setting: "e"   - Email on exit? google PBS email for more
         memory_need: "2Gb"   - Maximum memory you will need
+        submit_jobs_together: True  - Submit jobs together+dependant on each other
         cpus_need: "20"   - Number of CPUS to request per node?
         scheduler: "SLURM"   - Scheduler (e.g. PBS, SLURM) to make scripts for?
     """
@@ -70,6 +71,7 @@ class GC_Job:
         self.email_address = "example@example.com"
         self.email_setting = "e"
         self.memory_need = "2Gb"
+        self.submit_jobs_together = True
         self.scheduler = "SLURM"
         self.cpus_need = '20'
         self.run_script = False
@@ -171,20 +173,24 @@ def main(debug=DEBUG):
         # Create the PBS queue files
         create_PBS_queue_files(times, inputs=inputs, debug=DEBUG)
         # Create the PSB run script
-        create_PBS_run_script(times)
+        create_PBS_run_script(time)
         # Send the script to the queue if requested
-        run_PBS_script(inputs.run_script)
-    elif inputs.scheduler == 'SLURM':
+        run_job_script(inputs.run_script, filename="run_geos_PBS.sh")
+    elif (inputs.scheduler == 'SLURM') and (not inputs.submit_jobs_together):
         # Create the SLURM queue files
         create_SLURM_queue_files(times, inputs=inputs, debug=DEBUG)
         # Create the SLURM run script
-        create_SLURM_run_script(times)
+        create_SLURM_run_script(time)
         # Send the script to the queue if requested
-        run_SLURM_script(inputs.run_script)
-    else:
-        print("WARNING: No file ouput for scheduler  '{}'".format(Scheduler))
-
-    return
+        run_job_script(inputs.run_script, filename="run_geos_SLURM.sh")
+    elif (inputs.scheduler == 'SLURM') and (inputs.submit_jobs_together):
+        # Create the SLURM queue files
+        create_SLURM_queue_files(times, inputs=inputs, debug=DEBUG)
+        # Create the SLURM run script
+        create_SLURM_run_script2submit_together(times)
+        # Send the script to the queue if requested
+        filename = "run_geos_SLURM_queue_all_jobs.sh"
+        run_job_script(inputs.run_script, filename=filename)
 
 
 def check_inputs(inputs, debug=False):
@@ -340,6 +346,8 @@ def get_arguments(inputs, debug=DEBUG):
                 inputs.wall_time = arg[12:].strip()
             elif arg.startswith("--cpus-need="):
                 inputs.cpus_need = arg[12:].strip()
+            elif arg.startswith("--submit_jobs_together="):
+                inputs.cpus_need = arg[23:].strip()
             elif arg.startswith("--memory-need="):
                 inputs.memory_need = arg[14:].strip()
             elif arg.startswith("--help"):
@@ -355,6 +363,7 @@ def get_arguments(inputs, debug=DEBUG):
             --submit=
             --out-of-hours=
             --wall-time=
+            --submit_jobs_together=
             --memory-need=
             --cpus-need=
             e.g. to set the queue name to 'bob' write --queue-name=bob
@@ -406,6 +415,7 @@ def get_variables_from_cli(inputs):
     send_email = inputs.send_email
     wall_time = inputs.wall_time
     memory_need = inputs.memory_need
+    submit_jobs_together = inputs.submit_jobs_together
     cpus_need = inputs.cpus_need
     step = inputs.step
     scheduler = inputs.scheduler
@@ -485,6 +495,14 @@ def get_variables_from_cli(inputs):
 
     # Set the memory requirements for the run
     clear_screen()
+    print("Submit jobs all jobs together (subsequently dependant)?\n")
+    input_read = str(input(DefaultInputPrtStr.format(submit_jobs_together)))
+    if input_read:
+        submit_jobs_together = input_read
+    del input_read
+
+    # Set the memory requirements for the run
+    clear_screen()
     print("How much memory does your run need?\n"
           "Lower amounts may increase priority.\n"
           "Example 2Gb, 4.8Gb, 200Mb, 200000kb.\n")
@@ -531,6 +549,7 @@ def get_variables_from_cli(inputs):
     inputs.run_script_string = run_script_string
     inputs.out_of_hours_string = out_of_hours_string
     inputs.wall_time = wall_time
+    inputs.submit_jobs_together = submit_jobs_together
     inputs.memory_need = memory_need
     inputs.cpus_need = cpus_need
     inputs.scheduler = scheduler
@@ -554,21 +573,12 @@ def test_get_variables_from_cli():
     return
 
 
-def run_PBS_script(run_script):
-    """
-    Call the PBS run script with a subprocess command
-    """
-    if run_script:
-        subprocess.call(["bash", "run_geos_PBS.sh"])
-    return
-
-
-def run_SLURM_script(run_script):
+def run_job_script(run_script, filename="run_geos_SLURM.sh"):
     """
     Call the SLURM run script with a subprocess command
     """
     if run_script:
-        subprocess.call(["bash", "run_geos_SLURM.sh"])
+        subprocess.call(["bash", filename])
     return
 
 
@@ -968,6 +978,7 @@ def create_SLURM_queue_files(times, inputs=None, debug=DEBUG):
     email_address = inputs.email_address
     email_setting = inputs.email_setting
     memory_need = inputs.memory_need
+    submit_jobs_together = inputs.submit_jobs_together
     cpus_need = inputs.cpus_need
 
     # Print received settings to debug:
@@ -981,6 +992,7 @@ def create_SLURM_queue_files(times, inputs=None, debug=DEBUG):
         print('email_address:', email_address)
         print('email_setting:', email_setting)
         print('memory_need:', memory_need)
+        print('submit_jobs_together:', submit_jobs_together)
         print('cpus_need:', cpus_need)
 
     # Create folder queue files
@@ -1020,6 +1032,9 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
             submit_next_job = 'False'
         else:
             submit_next_job = 'True'
+        # If submitting jobs to queue together (dependently), then override
+        if submit_jobs_together:
+            submit_next_job = 'False'
 
         # Setup queue file string
         script_location = os.path.realpath(__file__)
@@ -1045,6 +1060,7 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
             start_time=start_time,
             wall_time=wall_time,
             memory_need=memory_need,
+            submit_jobs_together=submit_jobs_together,
             cpus_need=cpus_need,
             queue_priority=queue_priority,
             out_of_hours_string=out_of_hours_string,
@@ -1069,13 +1085,16 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
     return
 
 
-def create_PBS_run_script(times):
+
+
+
+def create_PBS_run_script(time):
     """
     Create the script that can set the 1st scheduled job running
 
     Parameters
     -------
-    times (list): list of times that data will be output for
+    time (str): string time to run job script for in the format YYYYMMDD
 
     Returns
     -------
@@ -1086,8 +1105,8 @@ def create_PBS_run_script(times):
     run_script_string = ("""
 #!/bin/bash
 qsub PBS_queue_files/{time}.pbs
-     """).format(time=times[0])
-    run_script.write(run_script_string)
+     """)
+    run_script.write(run_script_string.format(time=time))
     run_script.close()
     # Change the permissions so it is executable
     st = os.stat( FileName )
@@ -1095,13 +1114,13 @@ qsub PBS_queue_files/{time}.pbs
     return
 
 
-def create_SLURM_run_script(times):
+def create_SLURM_run_script(time):
     """
     Create the script that can set the 1st scheduled job running
 
     Parameters
     -------
-    times (list): list of times that data will be output for
+    time (str): string time to run job script for in the format YYYYMMDD
 
     Returns
     -------
@@ -1111,14 +1130,52 @@ def create_SLURM_run_script(times):
     run_script = open(FileName, 'w')
     run_script_string = ("""
 #!/bin/bash
-sbatch SLURM_queue_files/{time}.sbatch
-     """).format(time=times[0])
-    run_script.write(run_script_string)
+job_number=$(sbatch SLURM_queue_files/{time}.sbatch)
+echo "$job_number"
+     """)
+    run_script.write(run_script_string.format(time=time))
     run_script.close()
     # Change the permissions so it is executable
     st = os.stat( FileName )
     os.chmod( FileName, st.st_mode | stat.S_IEXEC)
     return
+
+
+def create_SLURM_run_script2submit_together(times):
+    """
+    Create the script that can set the 1st scheduled job running
+
+    Parameters
+    -------
+    time (str): string time to run job script for in the format YYYYMMDD
+
+    Returns
+    -------
+    (None)
+    """
+    print(times)
+    FileName = 'run_geos_SLURM_queue_all_jobs.sh'
+    run_script = open(FileName, 'w')
+    Line0 = "#!/bin/bash \n"
+    Line1 = """job_num_{time}=$(sbatch --parsable SLURM_queue_files/{time}.sbatch) \n"""
+    Line2 = """echo "$job_num_{time}" \n"""
+    Line3 = """job_num_{time2}=$(sbatch --parsable --dependency=afterok:"$job_num_{time1}" SLURM_queue_files/{time2}.sbatch) \n"""
+    for n_time, time in enumerate( times[:-1] ):
+        #
+        if time == times[0]:
+            run_script.write(Line0)
+            run_script.write(Line1.format(time=time))
+            run_script.write(Line2.format(time=time))
+        else:
+            run_script.write(Line3.format(time1=times[n_time-1], time2=time))
+            run_script.write(Line2.format(time=time))
+    run_script.close()
+    # Change the permissions so it is executable
+    st = os.stat( FileName )
+    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
+    return
+
+
 
 
 # --------------------------------------------------------------
