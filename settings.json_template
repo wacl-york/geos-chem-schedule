@@ -1,0 +1,17 @@
+{
+    "cpus_need": "20",
+    "email_address": "example@example.com",
+    "email_setting": "e",
+    "job_name": "GEOS",
+    "memory_need": "2Gb",
+    "out_of_hours": false,
+    "out_of_hours_string": "no",
+    "queue_name": "nodes",
+    "queue_priority": "0",
+    "run_script": false,
+    "run_script_string": "yes",
+    "scheduler": "SLURM",
+    "send_email": true,
+    "step": "6month",
+    "wall_time": "48:00:00"
+}
