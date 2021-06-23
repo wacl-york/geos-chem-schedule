@@ -11,9 +11,6 @@ Notes
  - You can either pass as arguments or run a UI if no arguments are passed.
  - The jobs can call the next job in the sequence meaning you can submit in the same way.
  - see "$ python geos-chem-schedule.py --help" for more information.
- - TODO:
-    - Make the stop after the final job in a set end in a cleaner way
-    - Alter SLURM script to stop it seeing BASH variables as commands
 """
 
 import subprocess
