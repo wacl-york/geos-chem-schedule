@@ -25,7 +25,7 @@ from dateutil.relativedelta import relativedelta
 import pytest
 
 # Import the functions called here for now...
-from core import GC_Job, get_arguments, check_inputs, get_start_and_end_dates, list_of_times_to_run, backup_the_input_file, create_the_input_files, run_job_script
+from core import GC_Job, get_arguments, check_inputs, get_start_and_end_dates, list_of_times_to_run, backup_the_input_files, create_the_input_files, run_job_script
 from core import create_PBS_queue_files, create_PBS_run_script
 from core import create_SLURM_queue_files, create_SLURM_run_script, create_SLURM_run_script2submit_together
 
@@ -53,7 +53,7 @@ def main(debug=DEBUG):
     times = list_of_times_to_run(start_date, end_date, inputs)
 
     # Make a backup of the input.geos file
-    backup_the_input_file()
+    backup_the_input_files(inputs=inputs)
 
     # Create the individual time input files
     create_the_input_files(times, inputs=inputs)
