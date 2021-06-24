@@ -121,7 +121,7 @@ def get_arguments(inputs, debug=False):
                 inputs.cpus_need = arg[12:].strip()
             elif arg.startswith("--manage-hemco-files="):
                 inputs.cpus_need = arg[21:].strip()
-            elif arg.startswith("--submit_jobs_together="):
+            elif arg.startswith("--submit-jobs-together="):
                 inputs.cpus_need = arg[23:].strip()
             elif arg.startswith("--memory-need="):
                 inputs.memory_need = arg[14:].strip()
@@ -138,8 +138,8 @@ def get_arguments(inputs, debug=False):
             --submit=
             --out-of-hours=
             --wall-time=
-            --submit_jobs_together=
-            --manage_hemco_files=
+            --submit-jobs-together=
+            --manage-hemco-files=
             --memory-need=
             --cpus-need=
             e.g. to set the queue name to 'bob' write --queue-name=bob
@@ -275,13 +275,13 @@ def get_variables_from_cli(inputs):
     del input_read
     # ... if so, then get the specific settings...
     if manage_hemco_files:
-        print("Set MetYear variable (single number, list, or (+/-)offset)")
+        print("What Met. year? (single number, list, or (+/-)offset)\n")
         input_read = str(input(DefaultInputPrtStr.format(MetYear)))
         if input_read:
             MetYear = input_read
         del input_read
 
-        print("Set EmisYear variable (single number, list, or (+/-)offset)")
+        print("What emissions year? (single number, list, or (+/-)offset)\n")
         input_read = str(input(DefaultInputPrtStr.format(EmisYear)))
         if input_read:
             EmisYear = input_read
@@ -499,22 +499,20 @@ def create_the_input_files(times, inputs=None, debug=False):
         with open(time_input_file_location, 'w') as output_file:
             output_file.writelines(new_input_geos)
 
-        # Also create files for controlling emissions
+        # Also create files for controlling emissions via HEMCO
         if inputs.manage_hemco_files:
             filename = ".HEMCO_Config.rc"
             HEMCO_input_file_location = os.path.join( _dir,
                                                     (start_time+filename)
                                                     )
-
             # Get the original HEMCO_Config.rc file
             with open("HEMCO_Config.rc", "r") as input_HEMCO_file:
                 input_HEMCO_geos = input_HEMCO_file.readlines()
-
+            # Work on the emission and Met. year from input variables
             MetYear = inputs.MetYear
             EmisYear = inputs.EmisYear
             MetYear = get_HEMCO_year_from_var(MetYear, n_time, start_time)
             EmisYear = get_HEMCO_year_from_var(EmisYear, n_time, start_time)
-
             # Update MetYear, EmisYear, ...  variables
             new_HEMCO_input = create_new_HEMCO_input_file(input_HEMCO_geos,
                                                           MetYear=MetYear,
@@ -522,8 +520,6 @@ def create_the_input_files(times, inputs=None, debug=False):
 
             with open(HEMCO_input_file_location, 'w') as output_file:
                 output_file.writelines(new_HEMCO_input)
-
-
 
         start_time = time
     return
@@ -533,11 +529,16 @@ def get_HEMCO_year_from_var(HEMCO_Year_var, n_time, start_time):
     """
     Convert a HEMCO year variable into a specific year
 
+    Returns
+    -------
+    (int)
 
-    A HEMCO year (e.g. EmisYear) can be provided as list, int, or offset
+    Notes
+    -------
+     - A HEMCO year (e.g. EmisYear) can be provided as list, int, or offset
     """
-    # Work out what the new MetYear should be
-    # A single integer
+    # Work out what the new MetYear should be...
+    # If input variable is a single integer
     try:
         # Check the first value of the string is a value year number
         int(HEMCO_Year_var[0])
@@ -545,7 +546,7 @@ def get_HEMCO_year_from_var(HEMCO_Year_var, n_time, start_time):
         return int(HEMCO_Year_var)
     except ValueError:
         pass
-    # Offset
+    # Or an offset from the modell year in input.geos
     try:
         start_year = int(start_time[:4])
         if '+' in HEMCO_Year_var:
@@ -554,11 +555,6 @@ def get_HEMCO_year_from_var(HEMCO_Year_var, n_time, start_time):
             return start_year - int(HEMCO_Year_var.split('-')[-1])
     except ValueError:
         pass
-
-    # List
-    # TODO...
-#        n_time
-
 
 
 def check_inputs(inputs, debug=False):
@@ -659,9 +655,7 @@ def create_new_input_file(start_time, end_time, input_file, inputs=None):
     -------
      - Return list is the output file as a list of strings
     """
-
     new_lines = []
-
     # Change the lines that need changing by reading their start date
     for line in input_file:
         if line.startswith("Start YYYYMMDD"):
@@ -864,6 +858,7 @@ def create_SLURM_queue_files(times, inputs=None, debug=False):
 
     # Print received settings to debug:
     if debug:
+        print('scheduler:', inputs.scheduler )
         print('cpus_need:', cpus_need)
         print('email_address:', email_address)
         print('email_setting:', email_setting)
@@ -889,15 +884,6 @@ cd \"${SLURM_SUBMIT_DIR}\" || exit 1
 
 # Set OpenMP thread count to number of cores requested for job:
 export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
-    # Setup lines to manage HEMCO files(s) if this was requested
-    if manage_hemco_files:
-        lines2manage_HEMCO_files = """
-rm -f HEMCO_Config.rc
-ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
- """
-    else:
-
-        lines2manage_HEMCO_files = ''
 
     # Modify the input files to have the correct start months
     for time in times:
@@ -938,12 +924,23 @@ ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
         queue_file_string = (''.join(queue_file_string))
         # If debugging, print loop to screen by date
         if debug:
-            print('times: ', times)
+            print('times: {}'.format(times) )
             print('time: {} of n={} '.format(time, len(times)) )
-            print('time == times[-1]: ', (time == times[-1]) )
-            print('start_time, end_time: ', start_time, end_time )
-            print('send_email: ', send_email)
-            print('email_address: ', email_address2use)
+            print('time == times[-1]: {}'.format( (time == times[-1]) ))
+            print('start_time, {} end_time: {}'.format(start_time, end_time))
+            print('send_email: {}'.format(send_email) )
+            print('email_address: {}'.format(email_address2use))
+            print('templates_dir: {}'.format(templates_dir))
+        # Setup lines to manage HEMCO files(s) if this was requested
+        if manage_hemco_files:
+            HEMCO_file_lines = """
+    rm -f HEMCO_Config.rc
+    ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
+     """
+            HEMCO_file_lines = HEMCO_file_lines.format(start_time=start_time)
+        else:
+
+            lines2manage_HEMCO_files = "\n"
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
@@ -951,7 +948,6 @@ ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
             job_name=(job_name + start_time)[:14],
             start_time=start_time,
             wall_time=wall_time,
-#            manage_hemco_files=manage_hemco_files,
             memory_need=memory_need,
             submit_jobs_together=submit_jobs_together,
             cpus_need=cpus_need,
@@ -960,11 +956,14 @@ ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
             end_time=end_time,
             email_address=email_address2use,
             slurm_capital_variables=slurm_capital_variables,
-            lines2manage_HEMCO_files=lines2manage_HEMCO_files,
+            HEMCO_file_lines=HEMCO_file_lines,
             submit_next_job=submit_next_job,
         )
         # Write the queue file to disk
         queue_file_location = os.path.join(_dir, (start_time + ".sbatch"))
+        if debug:
+            print('queue_file_location: {}'.format(queue_file_location))
+            print('queue_file_string: {}'.format(queue_file_string))
         queue_file = open(queue_file_location, 'w')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command

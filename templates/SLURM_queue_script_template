@@ -114,7 +114,7 @@ ln -s input_files/{start_time}.input.geos input.geos
 
 # Remove the existing HEMCO_Config.rc file and link to next for next job submission
 # Note, these lines are optional and will not appear in all generated scripts. 
-{lines2manage_hemco_files}
+{HEMCO_file_lines}
 
 # Run GEOS-Chem
 srun geos
