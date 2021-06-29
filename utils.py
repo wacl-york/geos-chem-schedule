@@ -41,14 +41,17 @@ def get_start_and_end_dates():
     return start_date, end_date
 
 
-def backup_the_input_file():
+def backup_the_input_files(inputs=None):
     """
     Save a copy of the original input file
     """
-    input_file = "input.geos"
-    backup_input_file = "input.geos.orig"
-    if not os.path.isfile(backup_input_file):
-        shutil.copyfile(input_file, backup_input_file)
+    input_files = ["input.geos"]
+    if inputs.manage_hemco_files:
+        input_files += ['HEMCO_Config.rc']
+    for input_file in input_files:
+        backup_input_file = '{}.orig'.format(input_file)
+        if not os.path.isfile(backup_input_file):
+            shutil.copyfile(input_file, backup_input_file)
     return
 
 

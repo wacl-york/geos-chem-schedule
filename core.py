@@ -20,21 +20,24 @@ class GC_Job:
 
     Attributes
     -------
-        attribute: default   - description
-        job_name: GEOS   - Name of the job to appear in qstat
-        step: month   - Time of the split chunks
-        queue_priority: 0   - Priority of the job (-1024 to 1023)
-        queue_name: nodes   - Name of the queue to submit too
-        run_script_string: yes   - Do you want to run the script immediately
-        out_of_hours_string: yes   - Do you only want to run evenings and weekends?
-        wall_time: "48:00:00"   - How long will a chunk take (overestimate)
-        send_email: "yes"   - Do you want an email upon completion?
+        attribute: default - description
+        job_name: GEOS - Name of the job to appear in qstat
+        step: month - Time of the split chunks
+        queue_priority: 0 - Priority of the job (-1024 to 1023)
+        queue_name: nodes - Name of the queue to submit too
+        run_script_string: "yes" - Do you want to run the script immediately?
+        out_of_hours_string: "yes" - Do you only want to run evenings and weekends?
+        wall_time: "48:00:00" - How long will a chunk take (overestimate)
+        send_email: yes - Do you want an email upon completion?
         email_address: "example@example.com"    - Address to send emails to
         email_setting: "e"   - Email on exit? google PBS email for more
         memory_need: "2Gb"   - Maximum memory you will need
         submit_jobs_together: True  - Submit jobs together+dependant on each other
-        cpus_need: "20"   - Number of CPUS to request per node?
-        scheduler: "SLURM"   - Scheduler (e.g. PBS, SLURM) to make scripts for?
+        MetYear: "2016" - Year to use for meteorology (in HEMCO_Config.rc)?
+        EmisYear: "2016" - Year to use for emissions (in HEMCO_Config.rc)?
+        cpus_need: "20" - Number of CPUS to request per node?
+        scheduler: "SLURM" - Scheduler (e.g. PBS, SLURM) to make scripts for?
+        manage_hemco_files: "no" - mange the HEMCO_Config.rc file(s)?
     """
 
     def __init__(self):
@@ -45,22 +48,25 @@ class GC_Job:
         user_settings_file = os.path.join(dir, 'settings.json')
 
         # Set defaults
+        self.cpus_need = '20'
+        self.email_address = "example@example.com"
+        self.email_setting = "e"
+        self.EmisYear = "2016"
         self.job_name = "GEOS"
-        self.step = "month"
         self.queue_priority = "0"
         self.queue_name = "nodes"
         self.run_script_string = "yes"
+        self.run_script = False
+        self.scheduler = "SLURM"
+        self.send_email = True
+        self.submit_jobs_together = True
+        self.step = "month"
+        self.manage_hemco_files = False
+        self.memory_need = "2Gb"
+        self.MetYear = "2016"
+        self.out_of_hours = False
         self.out_of_hours_string = "no"
         self.wall_time = "48:00:00"
-        self.send_email = True
-        self.email_address = "example@example.com"
-        self.email_setting = "e"
-        self.memory_need = "2Gb"
-        self.submit_jobs_together = True
-        self.scheduler = "SLURM"
-        self.cpus_need = '20'
-        self.run_script = False
-        self.out_of_hours = False
         # Read the settings JSON file if this is present
         if os.path.exists(user_settings_file):
             settings_file = open(user_settings_file, 'r')
@@ -113,7 +119,9 @@ def get_arguments(inputs, debug=False):
                 inputs.wall_time = arg[12:].strip()
             elif arg.startswith("--cpus-need="):
                 inputs.cpus_need = arg[12:].strip()
-            elif arg.startswith("--submit_jobs_together="):
+            elif arg.startswith("--manage-hemco-files="):
+                inputs.cpus_need = arg[21:].strip()
+            elif arg.startswith("--submit-jobs-together="):
                 inputs.cpus_need = arg[23:].strip()
             elif arg.startswith("--memory-need="):
                 inputs.memory_need = arg[14:].strip()
@@ -130,7 +138,8 @@ def get_arguments(inputs, debug=False):
             --submit=
             --out-of-hours=
             --wall-time=
-            --submit_jobs_together=
+            --submit-jobs-together=
+            --manage-hemco-files=
             --memory-need=
             --cpus-need=
             e.g. to set the queue name to 'bob' write --queue-name=bob
@@ -165,10 +174,13 @@ def get_variables_from_cli(inputs):
     out_of_hours_string = inputs.out_of_hours_string
     email_address = inputs.email_address
     email_setting = inputs.email_setting
+    EmisYear = inputs.EmisYear
     send_email = inputs.send_email
     wall_time = inputs.wall_time
     memory_need = inputs.memory_need
+    MetYear = inputs.MetYear
     submit_jobs_together = inputs.submit_jobs_together
+    manage_hemco_files = inputs.manage_hemco_files
     cpus_need = inputs.cpus_need
     step = inputs.step
     scheduler = inputs.scheduler
@@ -246,13 +258,34 @@ def get_variables_from_cli(inputs):
         wall_time = input_read
     del input_read
 
-    # Set the memory requirements for the run
+    # Submit all the jobs into the queue at the same time?
     clear_screen()
     print("Submit jobs all jobs together (subsequently dependant)?\n")
     input_read = str(input(DefaultInputPrtStr.format(submit_jobs_together)))
     if input_read:
         submit_jobs_together = input_read
     del input_read
+
+    # Manage emissions and meteorological settings (HEMCO_Config.rc)
+    clear_screen()
+    print("Manage emissions & meteorological settings via HEMCO_Config.rc?\n")
+    input_read = str(input(DefaultInputPrtStr.format(manage_hemco_files)))
+    if input_read:
+        manage_hemco_files = input_read
+    del input_read
+    # ... if so, then get the specific settings...
+    if manage_hemco_files:
+        print("What Met. year? (single number, list, or (+/-)offset)\n")
+        input_read = str(input(DefaultInputPrtStr.format(MetYear)))
+        if input_read:
+            MetYear = input_read
+        del input_read
+
+        print("What emissions year? (single number, list, or (+/-)offset)\n")
+        input_read = str(input(DefaultInputPrtStr.format(EmisYear)))
+        if input_read:
+            EmisYear = input_read
+        del input_read
 
     # Set the memory requirements for the run
     clear_screen()
@@ -296,19 +329,22 @@ def get_variables_from_cli(inputs):
     clear_screen()
 
     # Update input variables
+    inputs.cpus_need = cpus_need
+    inputs.email_address = email_address
+    inputs.EmisYear = EmisYear
     inputs.job_name = job_name
     inputs.queue_name = queue_name
     inputs.queue_priority = queue_priority
     inputs.run_script_string = run_script_string
-    inputs.out_of_hours_string = out_of_hours_string
-    inputs.wall_time = wall_time
-    inputs.submit_jobs_together = submit_jobs_together
-    inputs.memory_need = memory_need
-    inputs.cpus_need = cpus_need
     inputs.scheduler = scheduler
-    inputs.email_address = email_address
     inputs.send_email = send_email
+    inputs.submit_jobs_together = submit_jobs_together
+    inputs.manage_hemco_files = manage_hemco_files
+    inputs.memory_need = memory_need
+    inputs.MetYear = MetYear
+    inputs.out_of_hours_string = out_of_hours_string
     inputs.step = step.lower()
+    inputs.wall_time = wall_time
     return inputs
 
 
@@ -446,14 +482,15 @@ def create_the_input_files(times, inputs=None, debug=False):
     with open("input.geos", "r") as input_file:
         input_geos = input_file.readlines()
 
-    for time in times:
+    for n_time, time in enumerate( times ):
         end_time = time
         if time == times[0]:
             start_time = time
             continue
 
+        filename = ".input.geos"
         time_input_file_location = os.path.join( _dir,
-                                                (start_time+".input.geos")
+                                                (start_time+filename)
                                                 )
 
         new_input_geos = create_new_input_file(start_time, end_time,
@@ -462,32 +499,62 @@ def create_the_input_files(times, inputs=None, debug=False):
         with open(time_input_file_location, 'w') as output_file:
             output_file.writelines(new_input_geos)
 
-#
-#
-#        for line in input_geos:
-#
-#            if line.startswith("Start YYYYMMDD"):
-#                newline = line[:26] + str(start_time) + line[34:]
-#                output_file.write(newline)
-#                # Confirm the run starts on the first of the time
-#            elif line.startswith("End   YYYYMMDD"):
-#                newline = line[:26] + str(end_time) + line[34:]
-#                output_file.write(newline)
-#            # Force CSPEC on
-#            elif line.startswith("Read and save CSPEC_FULL:"):
-#                newline = line[:26] + 'T \n'
-#                output_file.write(newline)
-#            # Make sure write at end on a 3
-#            elif line.startswith("Schedule output for"):
-#                newline = update_output_line( line, end_time )
-#                output_file.write(newline)
-#            else:
-#                newline = line
-#                output_file.write(newline)
-#        output_file.close()
-#        input_geos.close()
+        # Also create files for controlling emissions via HEMCO
+        if inputs.manage_hemco_files:
+            filename = ".HEMCO_Config.rc"
+            HEMCO_input_file_location = os.path.join( _dir,
+                                                    (start_time+filename)
+                                                    )
+            # Get the original HEMCO_Config.rc file
+            with open("HEMCO_Config.rc", "r") as input_HEMCO_file:
+                input_HEMCO_geos = input_HEMCO_file.readlines()
+            # Work on the emission and Met. year from input variables
+            MetYear = inputs.MetYear
+            EmisYear = inputs.EmisYear
+            MetYear = get_HEMCO_year_from_var(MetYear, n_time, start_time)
+            EmisYear = get_HEMCO_year_from_var(EmisYear, n_time, start_time)
+            # Update MetYear, EmisYear, ...  variables
+            new_HEMCO_input = create_new_HEMCO_input_file(input_HEMCO_geos,
+                                                          MetYear=MetYear,
+                                                          EmisYear=EmisYear)
+
+            with open(HEMCO_input_file_location, 'w') as output_file:
+                output_file.writelines(new_HEMCO_input)
+
         start_time = time
     return
+
+
+def get_HEMCO_year_from_var(HEMCO_Year_var, n_time, start_time):
+    """
+    Convert a HEMCO year variable into a specific year
+
+    Returns
+    -------
+    (int)
+
+    Notes
+    -------
+     - A HEMCO year (e.g. EmisYear) can be provided as list, int, or offset
+    """
+    # Work out what the new MetYear should be...
+    # If input variable is a single integer
+    try:
+        # Check the first value of the string is a value year number
+        int(HEMCO_Year_var[0])
+        # If so (e.g. not "+" or "-" return)
+        return int(HEMCO_Year_var)
+    except ValueError:
+        pass
+    # Or an offset from the modell year in input.geos
+    try:
+        start_year = int(start_time[:4])
+        if '+' in HEMCO_Year_var:
+            return start_year + int(HEMCO_Year_var.split('+')[-1])
+        else:
+            return start_year - int(HEMCO_Year_var.split('-')[-1])
+    except ValueError:
+        pass
 
 
 def check_inputs(inputs, debug=False):
@@ -588,9 +655,7 @@ def create_new_input_file(start_time, end_time, input_file, inputs=None):
     -------
      - Return list is the output file as a list of strings
     """
-
     new_lines = []
-
     # Change the lines that need changing by reading their start date
     for line in input_file:
         if line.startswith("Start YYYYMMDD"):
@@ -604,6 +669,50 @@ def create_new_input_file(start_time, end_time, input_file, inputs=None):
         # Make sure write at end on a 3
         elif line.startswith("Schedule output for"):
             newline = update_output_line(line, end_time, inputs=inputs)
+        else:
+            newline = line
+        new_lines.append(newline)
+    return new_lines
+
+
+def create_new_HEMCO_input_file(input_file, EmisYear="2016", MetYear="2016",
+                                debug=False):
+    """
+    Create a new HEMCO_Config.rc input file based on the passed file.
+
+    Parameters
+    -------
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+    start_time (str): Start of GEOS-Chem run in format YYYYMMSS
+    end_time (str): End of GEOS-Chem run in format YYYYMMSS
+    inputs (GC_Job class): Class containing various inputs like a dictionary
+
+    Returns
+    -------
+    (list)
+
+    Notes
+    -------
+     - Return list is the output file as a list of strings
+    """
+
+    new_lines = []
+    if debug:
+        print('MetYear: {}, EmisYear: {}'.format(MetYear, EmisYear) )
+
+    # Change the lines that need changing by reading their start date
+    for line in input_file:
+        # Update year for emissions
+        if line.startswith("Emission year: "):
+            buffer = ' '*(len(line.split(':')[-1])-5)
+            newline = line[:14] + buffer + str(EmisYear) +'\n'
+        elif line.startswith("EmisYear: "):
+            buffer = ' '*(len(line.split(':')[-1])-5)
+            newline = line[:9] + buffer + str(EmisYear) +'\n'
+        # Update MetYear
+        elif line.startswith("MetYear: "):
+            buffer = ' '*(len(line.split(':')[-1])-5)
+            newline = line[:8] + buffer + str(MetYear) +'\n'
         else:
             newline = line
         new_lines.append(newline)
@@ -734,31 +843,34 @@ def create_SLURM_queue_files(times, inputs=None, debug=False):
     (None)
     """
     # Create local variables
-    queue_name = inputs.queue_name
-    job_name = inputs.job_name
-    queue_priority = inputs.queue_priority
-    out_of_hours = inputs.out_of_hours
-    wall_time = inputs.wall_time
-    send_email = inputs.send_email
+    cpus_need = inputs.cpus_need
     email_address = inputs.email_address
     email_setting = inputs.email_setting
+    job_name = inputs.job_name
+    manage_hemco_files = inputs.manage_hemco_files
     memory_need = inputs.memory_need
+    out_of_hours = inputs.out_of_hours
+    queue_name = inputs.queue_name
+    queue_priority = inputs.queue_priority
+    send_email = inputs.send_email
     submit_jobs_together = inputs.submit_jobs_together
-    cpus_need = inputs.cpus_need
+    wall_time = inputs.wall_time
 
     # Print received settings to debug:
     if debug:
-        print('queue_name:', queue_name)
-        print('job_name:', job_name)
-        print('queue_priority:', queue_priority)
-        print('out_of_hours:', out_of_hours)
-        print('wall_time:', wall_time)
-        print('send_email:', send_email)
+        print('scheduler:', inputs.scheduler )
+        print('cpus_need:', cpus_need)
         print('email_address:', email_address)
         print('email_setting:', email_setting)
+        print('job_name:', job_name)
+        print('manage_hemco_files:', manage_hemco_files)
         print('memory_need:', memory_need)
+        print('out_of_hours:', out_of_hours)
+        print('queue_name:', queue_name)
+        print('queue_priority:', queue_priority)
+        print('send_email:', send_email)
         print('submit_jobs_together:', submit_jobs_together)
-        print('cpus_need:', cpus_need)
+        print('wall_time:', wall_time)
 
     # Create folder queue files
     _dir = os.path.dirname("SLURM_queue_files/")
@@ -772,6 +884,7 @@ cd \"${SLURM_SUBMIT_DIR}\" || exit 1
 
 # Set OpenMP thread count to number of cores requested for job:
 export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
+
     # Modify the input files to have the correct start months
     for time in times:
         end_time = time
@@ -804,18 +917,30 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
         # Setup queue file string
         templates_dir = '{}/templates/'.format(os.path.dirname(__file__))
         script_template_file = 'SLURM_queue_script_template'
+
         script_template = os.path.join(templates_dir, script_template_file)
         with open(script_template, 'r') as template_file:
             queue_file_string = [i for i in template_file]
         queue_file_string = (''.join(queue_file_string))
         # If debugging, print loop to screen by date
         if debug:
-            print('times: ', times)
+            print('times: {}'.format(times) )
             print('time: {} of n={} '.format(time, len(times)) )
-            print('time == times[-1]: ', (time == times[-1]) )
-            print('start_time, end_time: ', start_time, end_time )
-            print('send_email: ', send_email)
-            print('email_address: ', email_address2use)
+            print('time == times[-1]: {}'.format( (time == times[-1]) ))
+            print('start_time, {} end_time: {}'.format(start_time, end_time))
+            print('send_email: {}'.format(send_email) )
+            print('email_address: {}'.format(email_address2use))
+            print('templates_dir: {}'.format(templates_dir))
+        # Setup lines to manage HEMCO files(s) if this was requested
+        if manage_hemco_files:
+            HEMCO_file_lines = """
+    rm -f HEMCO_Config.rc
+    ln -s input_files/{start_time}.HEMCO_Config.rc HEMCO_Config.rc\n
+     """
+            HEMCO_file_lines = HEMCO_file_lines.format(start_time=start_time)
+        else:
+
+            lines2manage_HEMCO_files = "\n"
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
@@ -831,10 +956,14 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
             end_time=end_time,
             email_address=email_address2use,
             slurm_capital_variables=slurm_capital_variables,
+            HEMCO_file_lines=HEMCO_file_lines,
             submit_next_job=submit_next_job,
         )
         # Write the queue file to disk
         queue_file_location = os.path.join(_dir, (start_time + ".sbatch"))
+        if debug:
+            print('queue_file_location: {}'.format(queue_file_location))
+            print('queue_file_string: {}'.format(queue_file_string))
         queue_file = open(queue_file_location, 'w')
         queue_file.write(queue_file_string)
         # If this is the final month then run an extra command
