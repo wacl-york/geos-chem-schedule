@@ -42,8 +42,8 @@ class GC_Job:
 
     def __init__(self):
 
-#        script_location = os.path.realpath(__file__)
-#        script_dir = os.path.dirname(script_location)
+        #        script_location = os.path.realpath(__file__)
+        #        script_dir = os.path.dirname(script_location)
         dir = os.path.dirname(__file__)
         user_settings_file = os.path.join(dir, 'settings.json')
 
@@ -80,7 +80,6 @@ class GC_Job:
 
         self.__dict__.update(options)
         return
-
 
 
 def get_arguments(inputs, debug=False):
@@ -482,14 +481,14 @@ def create_the_input_files(times, inputs=None, debug=False):
     with open("input.geos", "r") as input_file:
         input_geos = input_file.readlines()
 
-    for n_time, time in enumerate( times ):
+    for n_time, time in enumerate(times):
         end_time = time
         if time == times[0]:
             start_time = time
             continue
 
         filename = ".input.geos"
-        time_input_file_location = os.path.join( _dir,
+        time_input_file_location = os.path.join(_dir,
                                                 (start_time+filename)
                                                 )
 
@@ -502,9 +501,9 @@ def create_the_input_files(times, inputs=None, debug=False):
         # Also create files for controlling emissions via HEMCO
         if inputs.manage_hemco_files:
             filename = ".HEMCO_Config.rc"
-            HEMCO_input_file_location = os.path.join( _dir,
-                                                    (start_time+filename)
-                                                    )
+            HEMCO_input_file_location = os.path.join(_dir,
+                                                     (start_time+filename)
+                                                     )
             # Get the original HEMCO_Config.rc file
             with open("HEMCO_Config.rc", "r") as input_HEMCO_file:
                 input_HEMCO_geos = input_HEMCO_file.readlines()
@@ -604,7 +603,8 @@ def check_inputs(inputs, debug=False):
                                                       queue_names=queue_names)
     # Check out-of-hours queue option string
     AssStr = "Unrecognised option for out of hours.\nTry one of: {yes_list} / {no_list}\nThe command given was {run_script_string}"
-    AssBool = ((out_of_hours_string in yes_list) or (out_of_hours_string in no_list))
+    AssBool = ((out_of_hours_string in yes_list)
+               or (out_of_hours_string in no_list))
     assert AssBool, AssStr.format(yes_list=yes_list, no_list=no_list,
                                   run_script_string=run_script_string)
     # Check 'run the script on completion' string
@@ -619,7 +619,7 @@ def check_inputs(inputs, debug=False):
 
     # Create the logicals - run the script?
     if run_script_string in yes_list:
-#        inputs["run_script"] = True
+        #        inputs["run_script"] = True
         inputs.run_script = True
     elif run_script_string in no_list:
         inputs.run_script = False
@@ -698,21 +698,21 @@ def create_new_HEMCO_input_file(input_file, EmisYear="2016", MetYear="2016",
 
     new_lines = []
     if debug:
-        print('MetYear: {}, EmisYear: {}'.format(MetYear, EmisYear) )
+        print('MetYear: {}, EmisYear: {}'.format(MetYear, EmisYear))
 
     # Change the lines that need changing by reading their start date
     for line in input_file:
         # Update year for emissions
         if line.startswith("Emission year: "):
             buffer = ' '*(len(line.split(':')[-1])-5)
-            newline = line[:14] + buffer + str(EmisYear) +'\n'
+            newline = line[:14] + buffer + str(EmisYear) + '\n'
         elif line.startswith("EmisYear: "):
             buffer = ' '*(len(line.split(':')[-1])-5)
-            newline = line[:9] + buffer + str(EmisYear) +'\n'
+            newline = line[:9] + buffer + str(EmisYear) + '\n'
         # Update MetYear
         elif line.startswith("MetYear: "):
             buffer = ' '*(len(line.split(':')[-1])-5)
-            newline = line[:8] + buffer + str(MetYear) +'\n'
+            newline = line[:8] + buffer + str(MetYear) + '\n'
         else:
             newline = line
         new_lines.append(newline)
@@ -821,8 +821,8 @@ def create_PBS_queue_files(times, inputs=None, debug=False):
             run_completion_script()
         queue_file.close()
         # Change the permissions so it is executable
-        st = os.stat( queue_file_location )
-        os.chmod( queue_file_location, st.st_mode | stat.S_IEXEC)
+        st = os.stat(queue_file_location)
+        os.chmod(queue_file_location, st.st_mode | stat.S_IEXEC)
         # Now update the start_time variable
         start_time = time
     return
@@ -858,7 +858,7 @@ def create_SLURM_queue_files(times, inputs=None, debug=False):
 
     # Print received settings to debug:
     if debug:
-        print('scheduler:', inputs.scheduler )
+        print('scheduler:', inputs.scheduler)
         print('cpus_need:', cpus_need)
         print('email_address:', email_address)
         print('email_setting:', email_setting)
@@ -924,11 +924,11 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
         queue_file_string = (''.join(queue_file_string))
         # If debugging, print loop to screen by date
         if debug:
-            print('times: {}'.format(times) )
-            print('time: {} of n={} '.format(time, len(times)) )
-            print('time == times[-1]: {}'.format( (time == times[-1]) ))
+            print('times: {}'.format(times))
+            print('time: {} of n={} '.format(time, len(times)))
+            print('time == times[-1]: {}'.format((time == times[-1])))
             print('start_time, {} end_time: {}'.format(start_time, end_time))
-            print('send_email: {}'.format(send_email) )
+            print('send_email: {}'.format(send_email))
             print('email_address: {}'.format(email_address2use))
             print('templates_dir: {}'.format(templates_dir))
         # Setup lines to manage HEMCO files(s) if this was requested
@@ -939,8 +939,7 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
      """
             HEMCO_file_lines = HEMCO_file_lines.format(start_time=start_time)
         else:
-
-            lines2manage_HEMCO_files = "\n"
+            HEMCO_file_lines = "\n"
         # Add all the variables to the string
         queue_file_string = queue_file_string.format(
             queue_name=queue_name,
@@ -971,8 +970,8 @@ export OMP_NUM_THREADS=\"${SLURM_CPUS_PER_TASK}\""""
             run_completion_script()
         queue_file.close()
         # Change the permissions so it is executable
-        st = os.stat( queue_file_location )
-        os.chmod( queue_file_location, st.st_mode | stat.S_IEXEC)
+        st = os.stat(queue_file_location)
+        os.chmod(queue_file_location, st.st_mode | stat.S_IEXEC)
         # Now update the start_time variable
         start_time = time
     return
@@ -999,8 +998,8 @@ qsub PBS_queue_files/{time}.pbs
     run_script.write(run_script_string.format(time=time))
     run_script.close()
     # Change the permissions so it is executable
-    st = os.stat( FileName )
-    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
+    st = os.stat(FileName)
+    os.chmod(FileName, st.st_mode | stat.S_IEXEC)
     return
 
 
@@ -1026,8 +1025,8 @@ echo "$job_number"
     run_script.write(run_script_string.format(time=time))
     run_script.close()
     # Change the permissions so it is executable
-    st = os.stat( FileName )
-    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
+    st = os.stat(FileName)
+    os.chmod(FileName, st.st_mode | stat.S_IEXEC)
     return
 
 
@@ -1050,7 +1049,7 @@ def create_SLURM_run_script2submit_together(times):
     Line1 = """job_num_{time}=$(sbatch --parsable SLURM_queue_files/{time}.sbatch) \n"""
     Line2 = """echo "$job_num_{time}" \n"""
     Line3 = """job_num_{time2}=$(sbatch --parsable --dependency=afterok:"$job_num_{time1}" SLURM_queue_files/{time2}.sbatch) \n"""
-    for n_time, time in enumerate( times[:-1] ):
+    for n_time, time in enumerate(times[:-1]):
         #
         if time == times[0]:
             run_script.write(Line0)
@@ -1061,8 +1060,8 @@ def create_SLURM_run_script2submit_together(times):
             run_script.write(Line2.format(time=time))
     run_script.close()
     # Change the permissions so it is executable
-    st = os.stat( FileName )
-    os.chmod( FileName, st.st_mode | stat.S_IEXEC)
+    st = os.stat(FileName)
+    os.chmod(FileName, st.st_mode | stat.S_IEXEC)
     return
 
 

@@ -70,7 +70,8 @@ def setup_script():
     # Make sure there is a ~/bin file
     print("mkdir -p $HOME/bin")
     # Create a symlink from the file to the bin
-    print("ln -s {script} $HOME/bin/geos-chem-schedule".format(script=script_location))
+    print(
+        "ln -s {script} $HOME/bin/geos-chem-schedule".format(script=script_location))
     # Make sure the ~/bin is in the bashrc
     # with open('$HOME/.bashrc','a') as bashrc:
     #        bashrc.write('## Written by geos-chem-schedule')

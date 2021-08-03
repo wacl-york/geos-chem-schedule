@@ -16,6 +16,7 @@ import pytest
 from core import *
 from utils import *
 
+
 def test_check_inputs():
     """
     Test check_inputs()
